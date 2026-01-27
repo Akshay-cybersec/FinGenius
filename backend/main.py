@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles  # <--- CRITICAL IMPORT
 from contextlib import asynccontextmanager
 from database import store_col, assets_col
 from services import price_engine
-from routers import dashboard, market, trade, store, learning
+from routers import dashboard, market, trade, store, learning,user
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -102,3 +102,4 @@ app.include_router(market.router)
 app.include_router(trade.router)
 app.include_router(store.router)
 app.include_router(learning.router)
+app.include_router(user.router) 
