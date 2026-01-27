@@ -1,224 +1,295 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { 
-  Award, ChevronRight, Zap, Laptop, Cpu, 
-  LineChart, Wallet, GraduationCap, Plus, Book
+  ChevronRight, Play, Star, BookOpen, Users, Clock, ArrowRight, 
+  Rocket, Book, GraduationCap, Plus, Laptop, BrainCircuit, 
+  Gamepad2, Wallet, LineChart, Sparkles, CheckCircle2, Zap 
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
-import FeatureTimeline from '@/components/FeatureTimeline';
+import Link from 'next/link';
+import Image from 'next/image'; 
+import { useTheme } from 'next-themes'; // Added this import
+import heroImg from "@/assets/image.png"; 
 
-// --- Background Animation Components ---
-const FloatingElement = ({ icon: Icon, delay, x, y }: any) => (
+const FloatingShape = ({ icon: Icon, delay, x, y, size = 40, color = "text-blue-200" }: any) => (
   <motion.div
-    initial={{ opacity: 0, scale: 0 }}
+    initial={{ opacity: 0, scale: 0.5 }}
     animate={{ 
-      opacity: [0.1, 0.3, 0.1], 
-      y: [0, -20, 0],
-      x: [0, 10, 0],
-      scale: 1 
+      opacity: [0.3, 0.6, 0.3], 
+      y: [0, -40, 0],
+      rotate: [0, 15, 0],
     }}
-    transition={{ 
-      duration: 5, 
-      repeat: Infinity, 
-      delay, 
-      ease: "easeInOut" 
-    }}
+    transition={{ duration: 10, repeat: Infinity, delay, ease: "easeInOut" }}
     style={{ position: 'absolute', left: x, top: y }}
-    className="text-primary/30 pointer-events-none hidden lg:block z-0"
+    className={`${color} pointer-events-none hidden lg:block z-0 blur-[0.5px]`}
   >
-    <Icon size={40} />
+    <Icon size={size} />
   </motion.div>
 );
 
-const CategoryCard = ({ cat, index }: { cat: any, index: number }) => {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const mouseXSpring = useSpring(x);
-  const mouseYSpring = useSpring(y);
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["10deg", "-10deg"]);
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-10deg", "10deg"]);
+const StatCard = ({ icon: Icon, title, subtitle, isDark }: any) => (
+  <div 
+    className="flex items-center gap-4 p-6 backdrop-blur-xl rounded-3xl shadow-xl border relative z-10 transition-all duration-500"
+    style={{
+      backgroundColor: isDark ? 'rgba(30, 58, 138, 0.4)' : 'rgba(255, 255, 255, 0.6)',
+      borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.4)',
+      boxShadow: isDark ? '0 20px 25px -5px rgba(0, 0, 0, 0.3)' : '0 20px 25px -5px rgba(59, 130, 246, 0.05)'
+    }}
+  >
+    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2D5BFF] to-[#6336FA] flex items-center justify-center text-white shadow-lg">
+      <Icon size={28} />
+    </div>
+    <div>
+      <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{title}</h3>
+      <p className={`text-sm font-medium ${isDark ? 'text-blue-200/60' : 'text-slate-500'}`}>{subtitle}</p>
+    </div>
+  </div>
+);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    x.set((e.clientX - rect.left) / rect.width - 0.5);
-    y.set((e.clientY - rect.top) / rect.height - 0.5);
-  };
-
-  return (
-    <motion.div
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => { x.set(0); y.set(0); }}
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.1 }}
-      className="relative group h-[220px] w-full cursor-pointer"
-    >
-      <div className={`absolute inset-0 bg-gradient-to-br ${cat.color} rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-      <div className="relative h-full p-6 rounded-3xl border border-input bg-card/80 backdrop-blur-md overflow-hidden flex flex-col justify-between transition-all duration-500 hover:border-primary/50 shadow-sm">
-        <div style={{ transform: "translateZ(30px)" }} className="space-y-3">
-          <div className="p-2.5 bg-primary/10 rounded-xl w-fit text-primary">{cat.icon}</div>
-          <h3 className="text-lg font-bold tracking-tight">{cat.title}</h3>
-        </div>
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-muted-foreground">
-            <span className="text-foreground font-bold">{cat.courses}</span> Modules
-          </p>
-          <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-            <Plus size={14} />
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
+const features = [
+  {
+    title: "Adaptive Quizzes",
+    description: "Assess your baseline skills with AI-driven tests.",
+    icon: <BrainCircuit className="w-7 h-7" />,
+    color: "from-blue-400 to-indigo-600",
+    shadow: "shadow-blue-500/10"
+  },
+  {
+    title: "Gamified Mastery",
+    description: "Learn theory through interactive challenges.",
+    icon: <Gamepad2 className="w-7 h-7" />,
+    color: "from-purple-500 to-pink-500",
+    shadow: "shadow-purple-500/10"
+  },
+  {
+    title: "FinQuest Budgeting",
+    description: "Simulate real-world financial planning.",
+    icon: <Wallet className="w-7 h-7" />,
+    color: "from-emerald-400 to-teal-600",
+    shadow: "shadow-emerald-500/10"
+  },
+  {
+    title: "Market Simulation",
+    description: "Practice trading with live market data.",
+    icon: <LineChart className="w-7 h-7" />,
+    color: "from-orange-400 to-red-500",
+    shadow: "shadow-orange-500/10"
+  }
+];
 
 export default function LMSLanding() {
+  const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const heroRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!mounted) return null;
 
+  const isDark = theme === 'dark';
+
   return (
-    <div className="relative min-h-screen bg-background text-foreground transition-colors duration-300 overflow-x-hidden font-sans">
+    <div 
+      className="relative min-h-screen transition-colors duration-500 font-sans overflow-x-hidden"
+      style={{ 
+        backgroundColor: isDark ? '#1A2B56' : '#F0F4FF',
+        color: isDark ? '#ffffff' : '#0f172a'
+      }}
+    >
       <Navbar />
 
-      {/* --- Fintech Background Animation Layer --- */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,54,250,0.03),transparent_70%)]" />
-        <FloatingElement icon={Laptop} delay={0} x="5%" y="15%" />
-        <FloatingElement icon={LineChart} delay={1} x="90%" y="10%" />
-        <FloatingElement icon={Book} delay={2} x="80%" y="80%" />
-        <FloatingElement icon={Wallet} delay={3} x="10%" y="75%" />
-        <FloatingElement icon={Cpu} delay={1.5} x="50%" y="5%" />
-        
-        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]" 
-             style={{ backgroundImage: `linear-gradient(to right, #6336FA 1px, transparent 1px), linear-gradient(to bottom, #6336FA 1px, transparent 1px)`, backgroundSize: '50px 50px' }} 
+      {/* --- Advanced Gradient Background Layer --- */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div 
+          className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] rounded-full blur-[120px] animate-pulse transition-colors duration-700"
+          style={{
+            background: isDark 
+              ? 'linear-gradient(to bottom right, rgba(37, 99, 235, 0.2), rgba(147, 51, 234, 0.1))'
+              : 'linear-gradient(to bottom right, rgba(191, 219, 254, 0.5), rgba(233, 213, 255, 0.3))'
+          }}
         />
+        <div 
+          className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full blur-[100px] transition-colors duration-700"
+          style={{
+            background: isDark
+              ? 'linear-gradient(to top right, rgba(49, 46, 129, 0.2), rgba(30, 58, 138, 0.2))'
+              : 'linear-gradient(to top right, rgba(224, 231, 255, 0.5), rgba(239, 246, 255, 0.5))'
+          }}
+        />
+        
+        <FloatingShape icon={Rocket} delay={0} x="85%" y="15%" size={60} color={isDark ? "text-blue-400/20" : "text-blue-400/40"} />
+        <FloatingShape icon={Play} delay={2} x="55%" y="10%" size={45} color={isDark ? "text-indigo-400/20" : "text-indigo-400/40"} />
+        <FloatingShape icon={Plus} delay={3} x="70%" y="35%" size={30} color={isDark ? "text-blue-500/10" : "text-blue-500/30"} />
       </div>
 
       {/* Hero Section */}
-      <section ref={heroRef} className="relative pt-24 md:pt-36 pb-12 px-6 max-w-7xl mx-auto z-10">
-        <div className="grid lg:grid-cols-2 gap-10 items-center">
-          <motion.div 
-            initial={{ opacity: 0, x: -30 }} 
-            animate={{ opacity: 1, x: 0 }} 
-            transition={{ duration: 0.8 }}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest mb-6">
-              <Zap size={12} className="fill-primary" /> Fintech Learning 2.0
-            </div>
-            
-           <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 tracking-tighter text-foreground">
-  Master the <br />
-  <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-primary to-purple-600 dark:from-blue-400 dark:via-primary dark:to-purple-400 drop-shadow-sm transition-all duration-300">
-    Future of Finance.
-  </span>
+      <section className="relative pt-16 pb-24 px-6 max-w-[1440px] mx-auto z-10">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
+            <h1 
+  className="text-6xl md:text-[84px] font-black leading-[1.05] mb-8 tracking-tight transition-colors duration-500"
+  style={{ color: isDark ? '#ffffff' : '#1A2B56' }}
+>
+  Turn Curiosity <br />
+  <span className="bg-gradient-to-r from-[#2D5BFF] via-[#6336FA] to-[#2D5BFF] bg-clip-text text-transparent">Into Mastery.</span>
 </h1>
-
-            <p className="text-base md:text-lg text-muted-foreground mb-8 max-w-md leading-relaxed">
-              Analyze markets, simulate budgets, and build intellectual capital with our high-growth Fintech workspace.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/dashboard">
-                <motion.button 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full sm:w-auto bg-primary text-white px-8 py-3.5 rounded-xl font-bold text-base shadow-lg shadow-primary/20 flex items-center justify-center gap-2 group"
-                >
-                  Get Started <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </motion.button>
-              </Link>
+<p 
+  className="text-xl mb-12 max-w-lg font-medium leading-relaxed transition-colors duration-500"
+  style={{ color: isDark ? 'rgba(219, 234, 254, 0.7)' : 'rgba(71, 85, 105, 1)' }}
+>
+  Escape the theory loop. Dive into a hands-on learning ecosystem where every lesson is a step toward your next big breakthrough.
+</p>
+            <div className="flex flex-col sm:flex-row gap-5">
+              <button className="bg-gradient-to-r from-[#2D5BFF] to-[#1e45cc] hover:shadow-2xl hover:shadow-blue-500/40 text-white px-10 py-5 rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-all transform hover:-translate-y-1">
+                Explore Courses <ChevronRight size={22} />
+              </button>
+              <button 
+                className="backdrop-blur-md px-10 py-5 rounded-full font-bold text-lg border shadow-lg transition-all"
+                style={{
+                  backgroundColor: isDark ? 'rgba(30, 58, 138, 0.3)' : 'rgba(255, 255, 255, 0.8)',
+                  color: isDark ? '#ffffff' : '#334155',
+                  borderColor: isDark ? 'rgba(30, 64, 175, 1)' : 'rgba(255, 255, 255, 1)'
+                }}
+              >
+                Get Started
+              </button>
             </div>
           </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1 }}
-            className="relative"
-          >
-            <div className="relative z-10 bg-card/50 backdrop-blur-2xl border border-white/10 p-6 md:p-8 rounded-[2rem] shadow-2xl">
-              <div className="flex justify-between items-center mb-6">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Live Market Simulation</p>
-                  <h4 className="text-xl font-bold tracking-tight">FinGenius Terminal</h4>
-                </div>
-                <div className="flex gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
-                </div>
-              </div>
-              
-              <div className="space-y-6">
-                <div className="h-28 w-full bg-muted/30 rounded-xl border border-input overflow-hidden relative">
-                  <motion.svg viewBox="0 0 400 100" className="absolute inset-0 w-full h-full stroke-primary fill-none stroke-2">
-                    <motion.path 
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1, d: ["M0,50 Q50,20 100,50 T200,50 T300,50 T400,50", "M0,50 Q50,80 100,50 T200,50 T300,50 T400,50", "M0,50 Q50,20 100,50 T200,50 T300,50 T400,50"] }}
-                      transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                    />
-                  </motion.svg>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-background/50 rounded-xl border border-input text-center">
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Accuracy</p>
-                    <p className="text-lg font-black text-emerald-500">98.4%</p>
-                  </div>
-                  <div className="p-3 bg-background/50 rounded-xl border border-input text-center">
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">Students</p>
-                    <p className="text-lg font-black text-primary">12.4k</p>
-                  </div>
-                </div>
-              </div>
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="relative">
+            <div className="relative z-10 w-full group">
+               <div className={`absolute inset-0 rounded-full blur-[100px] transition-all duration-700 ${isDark ? 'bg-blue-500/10' : 'bg-blue-400/20 group-hover:bg-blue-400/30'}`} />
+               <Image 
+                 src={heroImg} 
+                 alt="LMS Hero Illustration" 
+                 priority 
+                 className="w-full h-auto relative z-10 drop-shadow-2xl transition-transform duration-700 group-hover:scale-105 object-contain" 
+               />
             </div>
-            
-            <motion.div 
-              animate={{ y: [0, -8, 0] }} 
-              transition={{ repeat: Infinity, duration: 4 }}
-              className="absolute -bottom-4 -left-4 z-20 bg-yellow-400 p-3 rounded-xl shadow-xl flex items-center gap-2 text-black font-bold scale-90 md:scale-100"
-            >
-              <Award size={18} />
-              <div className="text-[10px] uppercase tracking-tighter leading-none">Top Performer <br/><span className="text-[8px] opacity-70">Verified Skill</span></div>
-            </motion.div>
           </motion.div>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24">
+          <StatCard icon={BookOpen} title="1500+ Courses" subtitle="Find your perfect path." isDark={isDark} />
+          <StatCard icon={Users} title="Expert Mentors" subtitle="Industry leading pros." isDark={isDark} />
+          <StatCard icon={Clock} title="Flexible Life" subtitle="Learn at your pace." isDark={isDark} />
+        </div>
       </section>
-<section className="py-16 md:py-20 bg-muted/10 relative z-10 border-y border-input/50">
-      {/* --- Horizontal Feature Timeline --- */}
-      <FeatureTimeline />
-</section>
-      {/* Pathways Section */}
-      <section className="py-16 md:py-20 bg-muted/10 relative z-10 border-y border-input/50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">Learning Pathways</h2>
-            <p className="text-sm md:text-base text-muted-foreground max-w-lg mx-auto">The tools you need to dominate the modern financial landscape.</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { title: "Quant Trading", courses: 12, icon: <LineChart size={20}/>, color: "from-blue-500/20 to-indigo-500/20" },
-              { title: "AI in Finance", courses: 8, icon: <Cpu size={20}/>, color: "from-purple-500/20 to-pink-500/20" },
-              { title: "Budget Mastery", courses: 15, icon: <Wallet size={20}/>, color: "from-emerald-500/20 to-teal-500/20" },
-              { title: "Core Economics", courses: 20, icon: <GraduationCap size={20}/>, color: "from-orange-500/20 to-red-500/20" }
-            ].map((cat, i) => (
-              <CategoryCard key={i} cat={cat} index={i} />
+
+      {/* --- Horizontal Feature Timeline Section --- */}
+      <section 
+        className="py-24 px-6 max-w-[1440px] mx-auto backdrop-blur-3xl rounded-[4rem] shadow-2xl border relative z-10 overflow-hidden transition-all duration-500"
+        style={{
+          background: isDark 
+            ? 'linear-gradient(to bottom, rgba(30, 58, 138, 0.2), rgba(15, 23, 42, 0.4))'
+            : 'linear-gradient(to bottom, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.8))',
+          borderColor: isDark ? 'rgba(30, 64, 175, 0.3)' : 'rgba(255, 255, 255, 1)'
+        }}
+      >
+        <div className="text-center mb-20">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest mb-4 border transition-colors duration-500"
+            style={{
+              backgroundColor: isDark ? 'rgba(30, 58, 138, 0.5)' : '#eff6ff',
+              color: isDark ? '#93c5fd' : '#2563eb',
+              borderColor: isDark ? 'rgba(29, 78, 216, 1)' : '#dbeafe'
+            }}
+          >
+            <Sparkles size={16} /> Roadmap to Success
+          </motion.div>
+          <h2 className="text-5xl md:text-6xl font-black mb-6 tracking-tight transition-colors duration-500" style={{ color: isDark ? '#ffffff' : '#1A2B56' }}>
+            Our Immersive <span className="text-[#2D5BFF]">Learning Flow</span>
+          </h2>
+        </div>
+
+        <div className="relative px-4">
+          <div 
+            className="absolute top-[4.5rem] left-0 w-full h-1 hidden lg:block transition-colors duration-500" 
+            style={{ backgroundColor: isDark ? 'rgba(30, 64, 175, 0.5)' : '#f1f5f9' }}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 relative z-10">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.2 }}
+                className="group relative"
+              >
+                <div className="flex flex-col items-center lg:items-start mb-8 relative">
+                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center text-white shadow-xl z-20 group-hover:scale-110 transition-transform duration-500`}>
+                      {feature.icon}
+                   </div>
+                </div>
+
+                <div 
+                  className="p-8 rounded-[2.5rem] border transition-all duration-500 group-hover:-translate-y-2 shadow-xl shadow-blue-900/5 group-hover:shadow-2xl"
+                  style={{
+                    backgroundColor: isDark ? 'rgba(30, 58, 138, 0.4)' : '#ffffff',
+                    borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#f8fafc'
+                  }}
+                >
+                   <h3 
+                    className="text-2xl font-bold mb-4 tracking-tight transition-colors duration-500 group-hover:text-[#2D5BFF]"
+                    style={{ color: isDark ? '#ffffff' : '#1A2B56' }}
+                   >
+                      {feature.title}
+                   </h3>
+                   <p className={`font-medium leading-relaxed mb-6 transition-colors duration-500 ${isDark ? 'text-blue-100/60' : 'text-slate-500'}`}>
+                      {feature.description}
+                   </p>
+                   <div className="flex items-center gap-2 text-sm font-bold text-[#2D5BFF] opacity-0 group-hover:opacity-100 transition-opacity">
+                      Learn More <ArrowRight size={16} />
+                   </div>
+                </div>
+                <div 
+                  className="absolute top-[4.25rem] -right-6 w-3 h-3 rounded-full hidden lg:block transition-colors duration-500" 
+                  style={{ backgroundColor: isDark ? '#1e3a8a' : '#dbeafe' }}
+                />
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      <footer className="py-10 text-center text-muted-foreground text-[10px] font-bold uppercase tracking-[0.2em] relative z-10">
-        © 2026 FinGenius Academy. Empowering high-growth individuals.
+      {/* Join Community Section */}
+      <section className="py-24 px-6 max-w-[1440px] mx-auto">
+        <div className="relative overflow-hidden rounded-[3.5rem] bg-gradient-to-br from-[#1A2B56] via-[#2D5BFF] to-[#6336FA] p-16 text-center text-white shadow-2xl">
+          <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative z-10">
+            <h2 className="text-5xl md:text-6xl font-black mb-8 text-white">Join Our Learning Community</h2>
+            <p className="text-xl text-blue-100 mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
+              Connect with thousands of learners and expert instructors. Share your progress and get hired by top companies.
+            </p>
+            <button className="bg-white text-[#2D5BFF] hover:bg-blue-50 px-12 py-5 rounded-full font-black text-xl shadow-2xl transition-transform hover:scale-105">
+              Get Started for Free
+            </button>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer 
+        className="pt-24 pb-12 px-10 text-white relative z-10 transition-colors duration-500"
+        style={{ backgroundColor: isDark ? '#0F1A36' : '#1A2B56' }}
+      >
+        <div className="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-16 border-b border-white/10 pb-16">
+          <div className="space-y-6">
+            <div className="text-3xl font-black italic tracking-tighter uppercase">Fin <span className="text-blue-400">Genius</span></div>
+            <p className="text-blue-100/60 leading-relaxed font-medium">World-class education, accessible to everyone, everywhere.</p>
+          </div>
+          </div>
+          
+        
+        <div className="mt-12 text-center text-blue-100/30 font-bold tracking-widest uppercase text-xs">
+          © 2026 Fin Genius Academy • All Rights Reserved
+        </div>
       </footer>
     </div>
   );
