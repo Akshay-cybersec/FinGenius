@@ -3,6 +3,7 @@ import asyncio
 from datetime import datetime, timedelta
 from database import users_col, assets_col
 from socket_manager import manager
+from database import db
 
 def update_user_activity(clerk_id: str):
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
@@ -94,3 +95,11 @@ async def price_engine():
         updated_assets = list(assets_col.find({}, {"_id":0}))
         await manager.broadcast(updated_assets)
         await asyncio.sleep(2)
+        
+def log_xp_transaction(clerk_id: str, amount: int, source: str):
+    db["xp_logs"].insert_one({
+        "clerk_id": clerk_id,
+        "amount": amount,
+        "source": source,
+        "timestamp": datetime.utcnow()
+    })
