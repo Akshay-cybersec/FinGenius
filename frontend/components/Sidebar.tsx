@@ -10,11 +10,12 @@ export default function Sidebar() {
 
   const navItems = [
     { name: "Overview", icon: LayoutDashboard, href: "/dashboard" },
-    { name: "Learn", icon: BookOpen, href: "/dashboard/learn" },
-    { name: "Market Sim", icon: TrendingUp, href: "/dashboard/market" },
-    { name: "Budgeting", icon: PieChart, href: "/dashboard/budget" },
-    { name: "Goals", icon: Target, href: "/dashboard/goals" },
-    { name: "Leaderboard", icon: Trophy, href: "/dashboard/leaderboard" },
+    { name: "Quiz System ", icon: BookOpen, href: "/dashboard/quiz" },
+    { name: "Budget Simulator", icon: TrendingUp, href: "/dashboard/budget" },
+    { name: "Investment Simulation", icon: PieChart, href: "/dashboard/investment" },
+    { name: "Game", icon: Target, href: "/dashboard/game" },
+    { name: "Learning", icon: Trophy, href: "/dashboard/learning" },
+    { name: "LeaderBoard", icon: Trophy, href: "/dashboard/leaderboard" },
   ];
 
   return (
