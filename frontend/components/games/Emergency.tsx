@@ -1,349 +1,364 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from "react";
 import { 
-  TrendingUp, TrendingDown, Shield, Zap, PieChart, 
-  ArrowRight, RefreshCcw, DollarSign, Activity, AlertTriangle, Trophy
-} from 'lucide-react';
+  Shield, 
+  Wallet, 
+  Ban, 
+  AlertTriangle, 
+  HeartPulse, 
+  Trophy, 
+  RefreshCcw,
+  TrendingDown,
+  Lock
+} from "lucide-react";
+import confetti from "canvas-confetti";
 
-// ================= CONSTANTS =================
+// --- Types ---
+type EventType = 'emergency' | 'budget' | 'luxury';
 
-const TOTAL_YEARS = 5;
-const INITIAL_BALANCE = 10000;
-
-type AssetType = 'safe' | 'balanced' | 'risky';
-
-interface MarketEvent {
+interface Scenario {
+  id: string;
   title: string;
+  cost: number;
+  type: EventType;
   description: string;
-  // Multipliers for each asset type (e.g., 1.10 = +10%, 0.90 = -10%)
-  impact: {
-    safe: number;
-    balanced: number;
-    risky: number;
-  };
+  reason: string;
 }
 
-const MARKET_EVENTS: MarketEvent[] = [
-  {
-    title: "Economic Boom",
-    description: "The economy is roaring! Businesses are expanding.",
-    impact: { safe: 1.03, balanced: 1.15, risky: 1.40 } // Risky wins big
+const SCENARIOS: Scenario[] = [
+  { 
+    id: '1', 
+    title: 'Transmission Failure', 
+    cost: 2200, 
+    type: 'emergency', 
+    description: "Your car won't reverse. The mechanic says the transmission is toast.",
+    reason: "Correct! This is Unexpected, Urgent, and Necessary. This is exactly what the fund is for."
   },
-  {
-    title: "Market Correction",
-    description: "Investors are panicking. Stocks take a dip.",
-    impact: { safe: 1.02, balanced: 0.90, risky: 0.70 } // Risky crashes
+  { 
+    id: '2', 
+    title: 'Best Friend\'s Wedding', 
+    cost: 800, 
+    type: 'budget', 
+    description: "It's a destination wedding in Cabo. You need flights and a hotel.",
+    reason: "Careful! A wedding is a planned event, not a surprise emergency. This should come from a 'Sinking Fund' or monthly savings."
   },
-  {
-    title: "Tech Bubble Burst",
-    description: "Speculative tech stocks crash hard.",
-    impact: { safe: 1.03, balanced: 0.95, risky: 0.50 } // Risky gets destroyed
+  { 
+    id: '3', 
+    title: 'Flash Sale: 4K TV', 
+    cost: 600, 
+    type: 'luxury', 
+    description: "60% off for the next 2 hours only! It's an incredible deal.",
+    reason: "Correct! A sale is never an emergency. Protecting your future involves saying 'No' to impulse buys."
   },
-  {
-    title: "Steady Growth",
-    description: "A boring but profitable year for the markets.",
-    impact: { safe: 1.03, balanced: 1.08, risky: 1.10 } // Balanced wins
+  { 
+    id: '4', 
+    title: 'Annual Car Insurance', 
+    cost: 1200, 
+    type: 'budget', 
+    description: "The 6-month premium just hit your inbox. It's due tomorrow.",
+    reason: "This is a predictable bill! In the future, save $200/month so this isn't a shock. Do not raid the Emergency Fund for bills you knew were coming."
   },
-  {
-    title: "Inflation Spike",
-    description: "Cash loses value, but assets hold steady.",
-    impact: { safe: 0.98, balanced: 1.02, risky: 1.05 } // Safe loses value
+  { 
+    id: '5', 
+    title: 'ER Visit: Broken Arm', 
+    cost: 1500, 
+    type: 'emergency', 
+    description: "You slipped on ice. The copay and deductible are high.",
+    reason: "Spot on. Health is wealth. Medical emergencies are the #1 reason to have this fund."
+  },
+  { 
+    id: '6', 
+    title: 'Layoff / Job Loss', 
+    cost: 2000, 
+    type: 'emergency', 
+    description: "Company downsizing. You need to pay rent while looking for work.",
+    reason: "This is the ultimate purpose of the fund: Income replacement during a crisis."
+  },
+  { 
+    id: '7', 
+    title: 'Concert Tickets', 
+    cost: 300, 
+    type: 'luxury', 
+    description: "Your favorite band is touring one last time.",
+    reason: "Good pass. 'FOMO' (Fear Of Missing Out) is not a financial emergency."
+  },
+  { 
+    id: '8', 
+    title: 'Leaking Roof', 
+    cost: 1800, 
+    type: 'emergency', 
+    description: "Water is dripping onto your bed during a storm.",
+    reason: "Home integrity is a need. If you don't fix this, the damage gets worse. Use the fund."
+  },
+  { 
+    id: '9', 
+    title: 'New iPhone Launch', 
+    cost: 1100, 
+    type: 'luxury', 
+    description: "Your current phone works, but the new one has Titanium edges.",
+    reason: "Exactly. Wanting an upgrade is a luxury, not a survival need."
+  },
+  { 
+    id: '10', 
+    title: 'Last Minute Flight Home', 
+    cost: 900, 
+    type: 'emergency', 
+    description: "A family member is critically ill. You need to be there tonight.",
+    reason: "Family emergencies are valid. You can't plan for this, so use the shield."
   }
 ];
 
-// ================= HELPER COMPONENTS =================
+export default function VaultGuardian() {
+  const [index, setIndex] = useState(0);
+  const [fundBalance, setFundBalance] = useState(10000); 
+  const [walletBalance, setWalletBalance] = useState(1500);
+  const [integrity, setIntegrity] = useState(100);
+  const [feedback, setFeedback] = useState<{msg: string, type: 'neutral'|'success'|'error'}>({
+    msg: "Defend the Vault! Only touch the Emergency Fund for TRUE emergencies.",
+    type: 'neutral'
+  });
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [gameResult, setGameResult] = useState<'win' | 'lose_debt' | 'lose_integrity' | null>(null);
+  
+  // New state to prevent race conditions during transitions
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-const AssetCard = ({ type, allocation, setAllocation, disabled }: any) => {
-  const config = {
-    safe: { label: "Bonds & Cash", color: "bg-blue-500", icon: Shield, desc: "Low Risk, Low Reward" },
-    balanced: { label: "S&P 500 Index", color: "bg-purple-500", icon: PieChart, desc: "Medium Risk, Steady Growth" },
-    risky: { label: "Crypto & Startups", color: "bg-orange-500", icon: Zap, desc: "High Risk, High Reward" }
-  }[type as AssetType];
+  const currentScenario = SCENARIOS[index];
 
-  return (
-    <div className={`relative p-6 rounded-2xl border ${disabled ? 'opacity-80' : ''} bg-slate-800 border-slate-700 transition-all hover:border-slate-500`}>
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`p-3 rounded-xl ${config.color} bg-opacity-20 text-white`}>
-            <config.icon size={24} className={type === 'safe' ? 'text-blue-400' : type === 'balanced' ? 'text-purple-400' : 'text-orange-400'} />
-          </div>
-          <div>
-            <h3 className="font-bold text-white text-lg">{config.label}</h3>
-            <p className="text-xs text-slate-400">{config.desc}</p>
-          </div>
-        </div>
-        <div className="text-2xl font-black text-white">{allocation}%</div>
-      </div>
+  // Safety check
+  if (!currentScenario && !isGameOver) {
+      return <div className="p-10 text-center text-white">Loading next scenario...</div>;
+  }
 
-      <input 
-        type="range" 
-        min="0" 
-        max="100" 
-        step="10"
-        value={allocation}
-        disabled={disabled}
-        onChange={(e) => setAllocation(type, parseInt(e.target.value))}
-        className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-white"
-      />
-    </div>
-  );
-};
+  const handleDecision = (decision: 'fund' | 'budget' | 'reject') => {
+    if(isGameOver || isTransitioning) return;
 
-// ================= MAIN COMPONENT =================
+    const { type, cost, reason } = currentScenario;
+    let nextIntegrity = integrity;
+    let nextFund = fundBalance;
+    let nextWallet = walletBalance;
+    let gameOverType: 'lose_debt' | 'lose_integrity' | null = null;
+    let msgType: 'success' | 'error' = 'success';
+    let msgText = reason;
 
-export default function PortfolioPilot() {
-  const [year, setYear] = useState(1);
-  const [balance, setBalance] = useState(INITIAL_BALANCE);
-  const [allocation, setAllocation] = useState({ safe: 30, balanced: 50, risky: 20 });
-  const [history, setHistory] = useState<{ year: number, balance: number, event: MarketEvent | null }[]>([{ year: 0, balance: INITIAL_BALANCE, event: null }]);
-  const [gameState, setGameState] = useState<'planning' | 'simulating' | 'summary' | 'gameover'>('planning');
-  const [currentEvent, setCurrentEvent] = useState<MarketEvent | null>(null);
+    // 1. EVALUATE DECISION
+    if (decision === 'fund') {
+      if (type === 'emergency') {
+        nextFund -= cost;
+        msgText = `✅ Approved. ${reason}`;
+      } else {
+        nextIntegrity -= 30;
+        nextFund -= cost;
+        msgType = 'error';
+        msgText = `⚠️ Violation! ${reason}`;
+      }
+    } 
+    else if (decision === 'budget') {
+      if (type === 'budget') {
+        if (walletBalance >= cost) {
+          nextWallet -= cost;
+          msgText = `✅ Good Budgeting. ${reason}`;
+        } else {
+          gameOverType = 'lose_debt';
+          msgType = 'error';
+          msgText = `💀 Bankruptcy! You tried to pay $${cost} with only $${walletBalance}.`;
+        }
+      } else if (type === 'emergency') {
+         if (walletBalance >= cost) {
+           nextWallet -= cost;
+           msgText = `✅ Wow! Cash flowed an emergency. Impressive.`;
+         } else {
+           gameOverType = 'lose_debt';
+           msgType = 'error';
+           msgText = `💀 Ruin! You didn't use your Shield and went broke.`;
+         }
+      } else {
+        if (walletBalance >= cost) {
+           nextWallet -= cost;
+           msgText = `⚠️ Okay... you paid for it, but was it wise?`;
+        } else {
+          gameOverType = 'lose_debt';
+        }
+      }
+    } 
+    else if (decision === 'reject') {
+      if (type === 'luxury') {
+        msgText = `✅ Smart. ${reason}`;
+      } else {
+        msgType = 'error';
+        nextIntegrity -= 40;
+        msgText = `❌ Negligence! You ignored a critical need.`;
+      }
+    }
 
-  // --- Logic ---
+    if (nextIntegrity <= 0) gameOverType = 'lose_integrity';
+    
+    setFundBalance(nextFund);
+    setWalletBalance(nextWallet);
+    setIntegrity(nextIntegrity);
+    setFeedback({ msg: msgText, type: msgType });
 
-  const handleAllocationChange = (type: AssetType, value: number) => {
-    // Simple logic: Adjust the other two to sum to 100% (simplified for UX)
-    // For a smoother UX, we just let them set it and normalize it on "Run"
-    setAllocation(prev => ({ ...prev, [type]: value }));
-  };
-
-  const runYear = () => {
-    // 1. Normalize Allocation to ensure it equals 100%
-    const total = allocation.safe + allocation.balanced + allocation.risky;
-    const norm = {
-      safe: allocation.safe / total,
-      balanced: allocation.balanced / total,
-      risky: allocation.risky / total
-    };
-
-    // 2. Select Event
-    const randomEvent = MARKET_EVENTS[Math.floor(Math.random() * MARKET_EVENTS.length)];
-    setCurrentEvent(randomEvent);
-    setGameState('simulating');
-
-    // 3. Calculate New Balance
-    setTimeout(() => {
-      const safeGrowth = (balance * norm.safe) * randomEvent.impact.safe;
-      const balancedGrowth = (balance * norm.balanced) * randomEvent.impact.balanced;
-      const riskyGrowth = (balance * norm.risky) * randomEvent.impact.risky;
-      
-      const newBalance = Math.round(safeGrowth + balancedGrowth + riskyGrowth);
-      
-      setBalance(newBalance);
-      setHistory(prev => [...prev, { year, balance: newBalance, event: randomEvent }]);
-      
-      setGameState('summary');
-    }, 2000); // 2 seconds of "simulation" suspense
-  };
-
-  const nextYear = () => {
-    if (year >= TOTAL_YEARS) {
-      setGameState('gameover');
+    if (gameOverType) {
+      setGameResult(gameOverType);
+      setIsGameOver(true);
     } else {
-      setYear(prev => prev + 1);
-      setGameState('planning');
-      setCurrentEvent(null);
+      if (index < SCENARIOS.length - 1) {
+        setIsTransitioning(true);
+        // Small refill
+        setWalletBalance(prev => Math.min(prev + 500, 2000)); 
+        setTimeout(() => {
+            setIndex(prev => prev + 1);
+            setIsTransitioning(false);
+            setFeedback({ msg: "Next event incoming...", type: 'neutral' });
+        }, 2000);
+      } else {
+        finishGame();
+      }
     }
   };
 
-  const restartGame = () => {
-    setYear(1);
-    setBalance(INITIAL_BALANCE);
-    setHistory([{ year: 0, balance: INITIAL_BALANCE, event: null }]);
-    setGameState('planning');
+  const finishGame = () => {
+    setIsGameOver(true);
+    setGameResult('win');
+    confetti({ particleCount: 200, spread: 120, colors: ['#10B981', '#F59E0B'] });
   };
 
-  // Calculate total for validation display
-  const totalAlloc = allocation.safe + allocation.balanced + allocation.risky;
+  const resetGame = () => {
+    setIndex(0);
+    setFundBalance(10000);
+    setWalletBalance(1500);
+    setIntegrity(100);
+    setIsGameOver(false);
+    setGameResult(null);
+    setIsTransitioning(false);
+    setFeedback({ msg: "Defend the Vault!", type: 'neutral' });
+  };
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans p-4 md:p-8 flex items-center justify-center">
+    <div className="w-full max-w-4xl mx-auto bg-slate-900 text-slate-100 rounded-3xl shadow-2xl overflow-hidden border border-slate-700 min-h-[600px] flex flex-col md:flex-row font-sans">
       
-      <div className="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* --- LEFT: CONTROL PANEL --- */}
-        <div className="lg:col-span-7 space-y-6">
-          
-          {/* Header */}
-          <div className="flex justify-between items-end mb-4">
-            <div>
-              <h1 className="text-4xl font-black text-white mb-2 tracking-tight">Portfolio Pilot</h1>
-              <p className="text-slate-400">Year {year} of {TOTAL_YEARS}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Net Worth</p>
-              <motion.div 
-                key={balance}
-                initial={{ scale: 1.2, color: '#10b981' }}
-                animate={{ scale: 1, color: '#ffffff' }}
-                className="text-4xl font-mono font-bold"
-              >
-                ${balance.toLocaleString()}
-              </motion.div>
+      {/* --- LEFT PANEL --- */}
+      <div className="w-full md:w-1/3 bg-slate-800 p-6 flex flex-col justify-between border-r border-slate-700">
+        <div>
+          <h2 className="text-xl font-bold text-slate-200 mb-6 flex items-center gap-2">
+            <Shield className="text-emerald-500" /> Vault Guardian
+          </h2>
+
+          <div className="space-y-6">
+            <StatBar 
+                label="Emergency Fund" 
+                amount={fundBalance} 
+                max={10000} 
+                color="bg-emerald-500" 
+                icon={<Lock size={14} className="text-emerald-400"/>} 
+            />
+            <StatBar 
+                label="Monthly Wallet" 
+                amount={walletBalance} 
+                max={2000} 
+                color="bg-blue-500" 
+                icon={<Wallet size={14} className="text-blue-400"/>} 
+            />
+             <div className="p-4 bg-slate-700/50 rounded-2xl border border-slate-600">
+                <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-bold uppercase text-purple-400 tracking-wider">Discipline</span>
+                <HeartPulse size={14} className="text-purple-400"/>
+                </div>
+                <div className="text-xl font-bold text-white mb-2">{integrity}%</div>
+                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div className={`h-full transition-all duration-500 ${integrity < 40 ? 'bg-red-500' : 'bg-purple-500'}`} style={{ width: `${integrity}%` }}></div>
+                </div>
             </div>
           </div>
+        </div>
+        <div className="mt-6 text-xs text-slate-500 text-center">Scenario {index + 1} of {SCENARIOS.length}</div>
+      </div>
 
-          {/* Allocation Cards */}
-          <div className="space-y-4">
-             <div className="flex justify-between items-center text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">
-                <span>Asset Allocation</span>
-                <span className={totalAlloc !== 100 ? "text-red-400" : "text-emerald-400"}>Total: {totalAlloc}%</span>
-             </div>
-             
-             <AssetCard 
-               type="safe" 
-               allocation={allocation.safe} 
-               setAllocation={handleAllocationChange} 
-               disabled={gameState !== 'planning'}
-             />
-             <AssetCard 
-               type="balanced" 
-               allocation={allocation.balanced} 
-               setAllocation={handleAllocationChange} 
-               disabled={gameState !== 'planning'}
-             />
-             <AssetCard 
-               type="risky" 
-               allocation={allocation.risky} 
-               setAllocation={handleAllocationChange} 
-               disabled={gameState !== 'planning'}
-             />
+      {/* --- RIGHT PANEL --- */}
+      <div className="w-full md:w-2/3 p-8 flex flex-col justify-center items-center relative bg-gradient-to-br from-slate-900 to-slate-800">
+        <div className={`absolute top-6 left-6 right-6 p-4 rounded-xl text-sm border shadow-lg transition-all duration-300 z-20 ${
+          feedback.type === 'error' ? 'bg-red-900/40 border-red-500/50 text-red-100' :
+          feedback.type === 'success' ? 'bg-emerald-900/40 border-emerald-500/50 text-emerald-100' :
+          'bg-slate-800 border-slate-600 text-slate-300'
+        }`}>
+           {feedback.msg}
+        </div>
+
+        {!isGameOver ? (
+          <div className={`w-full max-w-md mt-12 transition-opacity duration-300 ${isTransitioning ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+            <div className="bg-white text-slate-900 rounded-3xl p-8 shadow-2xl mb-8 border-4 border-slate-200">
+              <div className="flex justify-between items-start mb-4">
+                <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Incoming Expense</span>
+                <AlertTriangle className="text-orange-500" />
+              </div>
+              <h3 className="text-2xl font-black mb-2 leading-tight">{currentScenario?.title}</h3>
+              <p className="text-slate-500 mb-6 text-sm font-medium">{currentScenario?.description}</p>
+              <div className="bg-slate-100 rounded-xl p-4 flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-400 uppercase">Cost</span>
+                <span className="text-3xl font-mono font-bold text-slate-900">-${currentScenario?.cost.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <GameBtn label="Use Fund" sub="Emergency" icon={<Shield size={20}/>} onClick={() => handleDecision('fund')} color="emerald" />
+              <GameBtn label="Wallet" sub="Cash Flow" icon={<Wallet size={20}/>} onClick={() => handleDecision('budget')} color="blue" />
+              <GameBtn label="Reject" sub="Not Needed" icon={<Ban size={20}/>} onClick={() => handleDecision('reject')} color="slate" />
+            </div>
           </div>
-
-          {/* Action Button */}
-          {gameState === 'planning' && (
-            <button 
-              onClick={runYear}
-              className="w-full py-5 rounded-2xl font-black text-xl shadow-lg bg-emerald-500 hover:bg-emerald-400 text-white transition-all flex items-center justify-center gap-3 mt-4"
-            >
-              <Activity /> Simulate Year {year}
-            </button>
-          )}
-
-          {gameState === 'simulating' && (
-             <div className="w-full py-5 rounded-2xl bg-slate-800 border border-slate-700 text-slate-400 flex items-center justify-center gap-3 animate-pulse mt-4">
-                <RefreshCcw className="animate-spin" /> Simulating Market...
-             </div>
-          )}
-
-          {gameState === 'summary' && (
-             <button 
-               onClick={nextYear}
-               className="w-full py-5 rounded-2xl font-black text-xl shadow-lg bg-blue-500 hover:bg-blue-400 text-white transition-all flex items-center justify-center gap-3 mt-4"
-             >
-               Next Year <ArrowRight />
-             </button>
-          )}
-
-        </div>
-
-        {/* --- RIGHT: VISUALIZATION & EVENTS --- */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-           
-           {/* Chart / History */}
-           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 h-64 relative overflow-hidden flex items-end justify-between px-8">
-              <div className="absolute top-4 left-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Portfolio Growth</div>
-              
-              {/* Simple CSS Bar Chart */}
-              {history.map((h, i) => {
-                 const height = (h.balance / (Math.max(...history.map(x => x.balance)) * 1.2)) * 100;
-                 return (
-                   <div key={i} className="flex flex-col items-center gap-2 group relative w-full">
-                      {/* Tooltip */}
-                      <div className="absolute -top-8 bg-slate-800 text-white text-[10px] px-2 py-1 rounded border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                         Year {h.year}: ${h.balance.toLocaleString()}
-                      </div>
-                      <motion.div 
-                        initial={{ height: 0 }}
-                        animate={{ height: `${Math.max(5, height)}%` }}
-                        className={`w-full max-w-[40px] rounded-t-lg transition-all duration-1000 ${
-                           i === 0 ? 'bg-slate-700' : 
-                           h.balance > history[i-1].balance ? 'bg-emerald-500' : 'bg-red-500'
-                        }`} 
-                      />
-                      <span className="text-[10px] text-slate-500">Y{h.year}</span>
-                   </div>
-                 )
-              })}
-           </div>
-
-           {/* Event Card (Pops up after simulation) */}
-           <AnimatePresence mode="wait">
-             {(gameState === 'summary' || gameState === 'gameover') && currentEvent && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-slate-800 border border-slate-700 rounded-3xl p-8 shadow-2xl relative overflow-hidden"
-                >
-                   {/* Background Gradient */}
-                   <div className={`absolute top-0 left-0 w-1 h-full ${
-                      currentEvent.impact.balanced > 1.05 ? 'bg-emerald-500' : 
-                      currentEvent.impact.balanced < 0.95 ? 'bg-red-500' : 'bg-yellow-500'
-                   }`} />
-
-                   <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 bg-slate-700 rounded-lg">
-                         {currentEvent.impact.balanced > 1 ? <TrendingUp className="text-emerald-400" /> : <TrendingDown className="text-red-400" />}
-                      </div>
-                      <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Market News</span>
-                   </div>
-                   
-                   <h2 className="text-2xl font-black text-white mb-2">{currentEvent.title}</h2>
-                   <p className="text-slate-400 leading-relaxed">{currentEvent.description}</p>
-
-                   {/* Impact Breakdown */}
-                   <div className="mt-6 grid grid-cols-3 gap-2">
-                      <ImpactBadge label="Safe" val={currentEvent.impact.safe} />
-                      <ImpactBadge label="Index" val={currentEvent.impact.balanced} />
-                      <ImpactBadge label="Risky" val={currentEvent.impact.risky} />
-                   </div>
-                </motion.div>
-             )}
-
-             {/* Game Over Screen */}
-             {gameState === 'gameover' && (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-gradient-to-br from-indigo-900 to-slate-900 border border-indigo-500/30 rounded-3xl p-8 text-center shadow-2xl"
-                >
-                   <Trophy size={48} className="mx-auto text-yellow-400 mb-4" />
-                   <h2 className="text-3xl font-black text-white mb-2">Simulation Complete!</h2>
-                   <p className="text-slate-300 mb-6">
-                      Final Net Worth: <span className="text-white font-mono font-bold">${balance.toLocaleString()}</span>
-                   </p>
-                   
-                   <div className="bg-slate-900/50 p-4 rounded-xl text-left text-sm text-slate-400 mb-6 border border-slate-800">
-                      <strong className="text-indigo-400 block mb-1">Lesson Learned:</strong>
-                      Diversification protects you from bad years. Did you notice how "Risky" assets crashed during bad news, but "Safe" assets held steady?
-                   </div>
-
-                   <button onClick={restartGame} className="w-full py-3 bg-white text-slate-900 font-bold rounded-xl hover:bg-slate-200 transition-colors">
-                      Play Again
-                   </button>
-                </motion.div>
-             )}
-           </AnimatePresence>
-
-        </div>
-
+        ) : (
+          <ResultScreen result={gameResult} onReset={resetGame} balance={fundBalance} />
+        )}
       </div>
     </div>
   );
 }
 
-const ImpactBadge = ({ label, val }: any) => {
-   const isPositive = val >= 1;
-   const percentage = Math.round((val - 1) * 100);
-   
-   return (
-      <div className={`p-2 rounded-lg text-center border ${isPositive ? 'bg-emerald-900/20 border-emerald-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
-         <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">{label}</div>
-         <div className={`font-mono font-bold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-            {isPositive ? '+' : ''}{percentage}%
-         </div>
-      </div>
-   )
-}
+// --- Subcomponents for cleaner code ---
+const StatBar = ({ label, amount, max, color, icon }: any) => (
+    <div className="p-4 bg-slate-700/50 rounded-2xl border border-slate-600">
+        <div className="flex justify-between items-center mb-2">
+            <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">{label}</span>
+            {icon}
+        </div>
+        <div className="text-2xl font-mono font-bold text-white mb-2">${amount.toLocaleString()}</div>
+        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div className={`h-full transition-all duration-500 ${color}`} style={{ width: `${Math.min((amount / max) * 100, 100)}%` }}></div>
+        </div>
+    </div>
+);
+
+const GameBtn = ({ label, sub, icon, onClick, color }: any) => {
+    const colors: any = {
+        emerald: "bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white border-emerald-500/50",
+        blue: "bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border-blue-500/50",
+        slate: "bg-slate-700 hover:bg-red-500 text-slate-300 hover:text-white border-slate-600"
+    };
+    return (
+        <button onClick={onClick} className={`group relative px-2 py-4 border-2 rounded-xl font-bold transition-all flex flex-col items-center gap-1 ${colors[color]}`}>
+            {icon}
+            <span className="text-sm">{label}</span>
+            <span className="text-[10px] opacity-70 font-normal">{sub}</span>
+        </button>
+    );
+};
+
+const ResultScreen = ({ result, onReset, balance }: any) => (
+    <div className="text-center max-w-md animate-in fade-in zoom-in duration-500">
+        {result === 'win' ? (
+             <>
+             <Trophy className="w-24 h-24 text-yellow-400 mx-auto mb-6 drop-shadow-lg" />
+             <h2 className="text-3xl font-black text-white mb-4">Guardian Status: ELITE</h2>
+             <p className="text-slate-300 mb-8">You successfully protected the vault! Final Balance: <span className="text-emerald-400 font-mono">${balance.toLocaleString()}</span></p>
+           </>
+        ) : (
+            <>
+            <TrendingDown className="w-24 h-24 text-red-500 mx-auto mb-6" />
+            <h2 className="text-3xl font-black text-white mb-4">Game Over</h2>
+            <p className="text-slate-300 mb-8">Your financial defenses collapsed.</p>
+            </>
+        )}
+        <button onClick={onReset} className="px-8 py-4 bg-white hover:bg-slate-200 text-slate-900 rounded-full font-bold flex items-center gap-2 mx-auto transition-all">
+            <RefreshCcw size={20} /> Try Again
+        </button>
+    </div>
+);

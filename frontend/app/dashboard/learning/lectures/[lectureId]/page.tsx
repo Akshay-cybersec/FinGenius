@@ -9,10 +9,10 @@ import { notFound } from 'next/navigation';
 // Ensure this path matches where you saved the BudgetArchitect file
 import BudgetArchitect from '@/components/games/BudgetArchitect';
 import Emergency from '@/components/games/Emergency';
-import {DebtDestroyer} from '@/components/games/DebtDestroyer'; 
+import DebtDestroyer from '@/components/games/DebtDestroyer'; 
 import Credit from '@/components/games/Credit';
 import GoodBad from '@/components/games/GoodBad'; 
-import {StockSimulator} from '@/components/games/StockSimulator';
+import StockSimulator from '@/components/games/StockSimulator';
 import Retirement from '@/components/games/Retirement';
 // Future imports (Commented out until you create them)
 // import StockSimulator from '@/components/games/StockSimulator'; 
