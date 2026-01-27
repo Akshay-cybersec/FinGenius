@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, PieChart, Activity, ShieldCheck, Zap, Briefcase } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
+import { toast } from 'react-hot-toast';
 
 type RiskLevel = 'Low' | 'Medium' | 'High';
 
@@ -70,7 +71,7 @@ const InvestmentSimulator = () => {
     const totalCost = asset.price * qty;
 
     if (totalCost > balance) {
-      alert(`Not enough balance. Required: $${totalCost.toFixed(2)}, Available: $${balance.toFixed(2)}`);
+      toast.error(`Order Rejected: Insufficient buying power. Required $${totalCost.toFixed(2)}, Available $${balance.toFixed(2)}`);
       return;
     }
 
@@ -83,7 +84,7 @@ const InvestmentSimulator = () => {
       },
       body: JSON.stringify({ ticker: asset.ticker, qty })
     });
-
+    toast.success(`Order Executed: Bought ${qty} shares of ${asset.ticker} at $${asset.price.toFixed(2)}`);
     fetchUser();
     fetchPortfolio();
   };
@@ -100,6 +101,7 @@ const InvestmentSimulator = () => {
       },
       body: JSON.stringify({ ticker, qty })
     });
+    toast.success(`Order Executed: Sold ${qty} shares of ${ticker} at market price`);
     fetchUser();
     fetchPortfolio();
   };
@@ -130,7 +132,7 @@ const InvestmentSimulator = () => {
 
     const connect = () => {
       ws = new WebSocket("ws://localhost:8000/ws/market");
-
+      toast.success("Connected to live market feed");
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         setMarketAssets(data);
@@ -145,6 +147,7 @@ const InvestmentSimulator = () => {
       };
 
       ws.onclose = () => {
+        toast.error("Market feed disconnected. Reconnecting...");
         reconnectTimer = setTimeout(connect, 2000);
       };
 
@@ -291,7 +294,7 @@ const InvestmentSimulator = () => {
                                 const qty = sellQtyMap[item.ticker] || 1;
 
                                 if (qty > item.quantity) {
-                                  alert(`You only have ${item.quantity} shares of ${item.ticker}`);
+                                  toast.error(`Order Rejected: Position limit exceeded. Available: ${item.quantity} shares`);
                                   return;
                                 }
 
@@ -315,62 +318,66 @@ const InvestmentSimulator = () => {
 
         {/* --- MARKET TABLE --- */}
         <div className="flex-1 bg-white/60 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-2xl overflow-hidden shadow-xl flex flex-col min-h-0">
-          <div className="overflow-x-auto flex-1 custom-scrollbar">
-            <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 z-10">
-                <tr className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-700/50 backdrop-blur-md">
-                  <th className="p-4 font-medium">Asset Name</th>
-                  <th className="p-4 font-medium">Price</th>
-                  <th className="p-4 font-medium">24h Change</th>
-                  <th className="p-4 font-medium">Risk Level</th>
-                  <th className="p-4 font-medium text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700/30">
-                {filteredAssets.map((asset) => (
-                  <tr key={asset.ticker} className="group hover:bg-slate-100 dark:hover:bg-slate-700/20 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-300 group-hover:shadow-[0_0_10px_rgba(34,211,238,0.2)] transition-all">
-                          {asset.ticker}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-slate-800 dark:text-slate-100">{asset.name}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-500">Vol: 1.2M</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4 font-mono text-slate-700 dark:text-slate-200 font-medium">${asset.price.toFixed(2)}</td>
-                    <td className="p-4">
-                      <div className={`flex items-center gap-1 text-sm ${asset.change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {asset.change >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                        {Math.abs(asset.change)}%
-                      </div>
-                    </td>
-                    <td className="p-4">{renderRiskBadge(asset.risk)}</td>
-                    <td className="p-4 text-right flex gap-2 justify-end">
-                      <div className="flex items-center bg-slate-200 dark:bg-slate-700 rounded-lg p-0.5">
-                        <input
-                          type="number"
-                          min={1}
-                          value={buyQtyMap[asset.ticker] || 1}
-                          onChange={(e) => setBuyQtyMap(prev => ({ ...prev, [asset.ticker]: Number(e.target.value) }))}
-                          className="w-12 bg-transparent px-2 py-1 text-xs text-center font-mono text-slate-800 dark:text-slate-200 focus:outline-none"
-                        />
-                      </div>
-                      <button
-                        onClick={() => buyAsset(asset, buyQtyMap[asset.ticker] || 1)}
-                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-lg shadow-md shadow-cyan-500/20 transition-all active:scale-95"
-                      >
-                        Buy
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+  <div className="overflow-x-auto flex-1 custom-scrollbar">
+    <table className="w-full text-left border-collapse">
+      <thead className="sticky top-0 z-10">
+        <tr className="bg-slate-100/90 dark:bg-slate-900/90 text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-700/50 backdrop-blur-md">
+          <th className="p-4 font-medium">Asset Name</th>
+          <th className="p-4 font-medium">Price</th>
+          <th className="p-4 font-medium">24h Change</th>
+          <th className="p-4 font-medium">Risk Level</th>
+          <th className="p-4 font-medium text-right">Action</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-200 dark:divide-slate-700/30">
+        {filteredAssets.map((asset) => (
+          <tr key={asset.ticker} className="group hover:bg-slate-100 dark:hover:bg-slate-700/20 transition-colors">
+            <td className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-300 group-hover:shadow-[0_0_10px_rgba(34,211,238,0.2)] transition-all">
+                  {asset.ticker.slice(0, 4)}
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-800 dark:text-slate-100">{asset.name}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500">Vol: 1.2M</p>
+                </div>
+              </div>
+            </td>
+            <td className="p-4 font-mono text-slate-700 dark:text-slate-200 font-medium">${asset.price.toFixed(2)}</td>
+            <td className="p-4">
+              <div className={`flex items-center gap-1 text-sm ${asset.change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                {asset.change >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                {Math.abs(asset.change)}%
+              </div>
+            </td>
+            <td className="p-4">{renderRiskBadge(asset.risk)}</td>
+            
+            {/* --- ACTION COLUMN --- */}
+            <td className="p-4 text-right flex gap-2 justify-end">
+               <div className="flex items-center bg-slate-200 dark:bg-slate-700 rounded-lg p-0.5">
+                    <input
+                        type="number"
+                        min={1}
+                        placeholder="Qty"
+                        value={buyQtyMap[asset.ticker] || 1}
+                        onChange={(e) => setBuyQtyMap(prev => ({ ...prev, [asset.ticker]: Number(e.target.value) }))}
+                        // UPDATED: Changed w-12 to w-20 for more space
+                        className="w-20 bg-transparent px-2 py-1 text-xs text-center font-mono text-slate-800 dark:text-slate-200 focus:outline-none"
+                    />
+               </div>
+              <button
+                onClick={() => buyAsset(asset, buyQtyMap[asset.ticker] || 1)}
+                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-lg shadow-md shadow-cyan-500/20 transition-all active:scale-95"
+              >
+                Buy
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
       </div>
 
       {/* RIGHT COLUMN */}
