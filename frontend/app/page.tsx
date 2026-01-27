@@ -1,185 +1,294 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ArrowRight, Zap, Shield, Sparkles, Globe } from 'lucide-react';
+import { 
+  ChevronRight, Play, Star, BookOpen, Users, Clock, ArrowRight, 
+  Rocket, Book, GraduationCap, Plus, Laptop, BrainCircuit, 
+  Gamepad2, Wallet, LineChart, Sparkles, CheckCircle2, Zap 
+} from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import Link from 'next/link';
+import Image from 'next/image'; 
+import { useTheme } from 'next-themes'; // Added this import
+import heroImg from "@/assets/image.png"; 
+
+const FloatingShape = ({ icon: Icon, delay, x, y, size = 40, color = "text-blue-200" }: any) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.5 }}
+    animate={{ 
+      opacity: [0.3, 0.6, 0.3], 
+      y: [0, -40, 0],
+      rotate: [0, 15, 0],
+    }}
+    transition={{ duration: 10, repeat: Infinity, delay, ease: "easeInOut" }}
+    style={{ position: 'absolute', left: x, top: y }}
+    className={`${color} pointer-events-none hidden lg:block z-0 blur-[0.5px]`}
+  >
+    <Icon size={size} />
+  </motion.div>
+);
+
+const StatCard = ({ icon: Icon, title, subtitle, isDark }: any) => (
+  <div 
+    className="flex items-center gap-4 p-6 backdrop-blur-xl rounded-3xl shadow-xl border relative z-10 transition-all duration-500"
+    style={{
+      backgroundColor: isDark ? 'rgba(30, 58, 138, 0.4)' : 'rgba(255, 255, 255, 0.6)',
+      borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.4)',
+      boxShadow: isDark ? '0 20px 25px -5px rgba(0, 0, 0, 0.3)' : '0 20px 25px -5px rgba(59, 130, 246, 0.05)'
+    }}
+  >
+    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2D5BFF] to-[#6336FA] flex items-center justify-center text-white shadow-lg">
+      <Icon size={28} />
+    </div>
+    <div>
+      <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>{title}</h3>
+      <p className={`text-sm font-medium ${isDark ? 'text-blue-200/60' : 'text-slate-500'}`}>{subtitle}</p>
+    </div>
+  </div>
+);
 
 const features = [
   {
-    title: "Instant Scalability",
-    desc: "Deploy in seconds, scale in milliseconds. Our infra grows with you.",
-    icon: <Zap className="w-6 h-6 text-yellow-500" />,
-    color: "bg-yellow-50"
+    title: "Adaptive Quizzes",
+    description: "Assess your baseline skills with AI-driven tests.",
+    icon: <BrainCircuit className="w-7 h-7" />,
+    color: "from-blue-400 to-indigo-600",
+    shadow: "shadow-blue-500/10"
   },
   {
-    title: "Secure by Design",
-    desc: "Military-grade encryption for every byte of data you process.",
-    icon: <Shield className="w-6 h-6 text-blue-500" />,
-    color: "bg-blue-50"
+    title: "Gamified Mastery",
+    description: "Learn theory through interactive challenges.",
+    icon: <Gamepad2 className="w-7 h-7" />,
+    color: "from-purple-500 to-pink-500",
+    shadow: "shadow-purple-500/10"
   },
   {
-    title: "AI Automation",
-    desc: "Let our neural engine handle the boring repetitive workflows.",
-    icon: <Sparkles className="w-6 h-6 text-purple-500" />,
-    color: "bg-purple-50"
+    title: "FinQuest Budgeting",
+    description: "Simulate real-world financial planning.",
+    icon: <Wallet className="w-7 h-7" />,
+    color: "from-emerald-400 to-teal-600",
+    shadow: "shadow-emerald-500/10"
+  },
+  {
+    title: "Market Simulation",
+    description: "Practice trading with live market data.",
+    icon: <LineChart className="w-7 h-7" />,
+    color: "from-orange-400 to-red-500",
+    shadow: "shadow-orange-500/10"
   }
 ];
 
-const plans = [
-  { name: "Starter", price: "$0", features: ["3 Projects", "Basic Analytics", "Community Support"], color: "border-gray-200" },
-  { name: "Pro", price: "$49", features: ["Unlimited Projects", "Advanced AI", "24/7 Priority"], color: "border-[#6336FA] ring-2 ring-[#6336FA]/20", popular: true },
-  { name: "Enterprise", price: "Custom", features: ["SLA Guarantee", "Dedicated Manager", "On-premise"], color: "border-black" },
-];
+export default function LMSLanding() {
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-export default function StartupLanding() {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  const isDark = theme === 'dark';
+
   return (
-    <div className="min-h-screen bg-[#FDFCFB] text-[#1a1a1a] selection:bg-[#6336FA] selection:text-white overflow-x-hidden">
+    <div 
+      className="relative min-h-screen transition-colors duration-500 font-sans overflow-x-hidden"
+      style={{ 
+        backgroundColor: isDark ? '#1A2B56' : '#F0F4FF',
+        color: isDark ? '#ffffff' : '#0f172a'
+      }}
+    >
       <Navbar />
 
+      {/* --- Advanced Gradient Background Layer --- */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div 
+          className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] rounded-full blur-[120px] animate-pulse transition-colors duration-700"
+          style={{
+            background: isDark 
+              ? 'linear-gradient(to bottom right, rgba(37, 99, 235, 0.2), rgba(147, 51, 234, 0.1))'
+              : 'linear-gradient(to bottom right, rgba(191, 219, 254, 0.5), rgba(233, 213, 255, 0.3))'
+          }}
+        />
+        <div 
+          className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full blur-[100px] transition-colors duration-700"
+          style={{
+            background: isDark
+              ? 'linear-gradient(to top right, rgba(49, 46, 129, 0.2), rgba(30, 58, 138, 0.2))'
+              : 'linear-gradient(to top right, rgba(224, 231, 255, 0.5), rgba(239, 246, 255, 0.5))'
+          }}
+        />
+        
+        <FloatingShape icon={Rocket} delay={0} x="85%" y="15%" size={60} color={isDark ? "text-blue-400/20" : "text-blue-400/40"} />
+        <FloatingShape icon={Play} delay={2} x="55%" y="10%" size={45} color={isDark ? "text-indigo-400/20" : "text-indigo-400/40"} />
+        <FloatingShape icon={Plus} delay={3} x="70%" y="35%" size={30} color={isDark ? "text-blue-500/10" : "text-blue-500/30"} />
+      </div>
+
       {/* Hero Section */}
-      <section className="relative max-w-7xl mx-auto px-6 pt-24 pb-32">
+      <section className="relative pt-16 pb-24 px-6 max-w-[1440px] mx-auto z-10">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <motion.div 
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-[#6336FA] text-xs font-bold uppercase tracking-wider mb-6">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-600"></span>
-              </span>
-              v2.0 is now live
-            </div>
-            <h1 className="text-[clamp(3rem,8vw,5.5rem)] leading-[0.95] font-serif font-medium mb-8 tracking-tighter">
-              Build fast. <br />
-              <span className="text-[#6336FA] italic">Ship faster.</span>
-            </h1>
-            <p className="text-xl text-gray-500 leading-relaxed mb-10 max-w-md">
-              A workspace designed for the next generation of creators. Clean, fast, and uncompromising.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <button className="bg-[#6336FA] hover:bg-[#5229d1] text-white px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-xl shadow-purple-200 flex items-center gap-2 group">
-                Start Creating
-                <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+          <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
+            <h1 
+  className="text-6xl md:text-[84px] font-black leading-[1.05] mb-8 tracking-tight transition-colors duration-500"
+  style={{ color: isDark ? '#ffffff' : '#1A2B56' }}
+>
+  Turn Curiosity <br />
+  <span className="bg-gradient-to-r from-[#2D5BFF] via-[#6336FA] to-[#2D5BFF] bg-clip-text text-transparent">Into Mastery.</span>
+</h1>
+<p 
+  className="text-xl mb-12 max-w-lg font-medium leading-relaxed transition-colors duration-500"
+  style={{ color: isDark ? 'rgba(219, 234, 254, 0.7)' : 'rgba(71, 85, 105, 1)' }}
+>
+  Escape the theory loop. Dive into a hands-on learning ecosystem where every lesson is a step toward your next big breakthrough.
+</p>
+            <div className="flex flex-col sm:flex-row gap-5">
+              <button className="bg-gradient-to-r from-[#2D5BFF] to-[#1e45cc] hover:shadow-2xl hover:shadow-blue-500/40 text-white px-10 py-5 rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-all transform hover:-translate-y-1">
+                Explore Courses <ChevronRight size={22} />
               </button>
-              <button className="bg-white border-2 border-black text-black px-8 py-4 rounded-xl font-bold text-lg hover:bg-black hover:text-white transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
-                Live Demo
+              <button 
+                className="backdrop-blur-md px-10 py-5 rounded-full font-bold text-lg border shadow-lg transition-all"
+                style={{
+                  backgroundColor: isDark ? 'rgba(30, 58, 138, 0.3)' : 'rgba(255, 255, 255, 0.8)',
+                  color: isDark ? '#ffffff' : '#334155',
+                  borderColor: isDark ? 'rgba(30, 64, 175, 1)' : 'rgba(255, 255, 255, 1)'
+                }}
+              >
+                Get Started
               </button>
             </div>
           </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.8, rotate: 5 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            className="relative"
-          >
-            {/* The "Unique" Visual: Floating Dashboard Cards */}
-            <div className="relative z-10 bg-white border-2 border-black p-4 rounded-2xl shadow-[20px_20px_0px_0px_#6336FA]">
-              <img src="/api/placeholder/600/400" alt="Dashboard" className="rounded-lg border border-gray-100" />
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="relative">
+            <div className="relative z-10 w-full group">
+               <div className={`absolute inset-0 rounded-full blur-[100px] transition-all duration-700 ${isDark ? 'bg-blue-500/10' : 'bg-blue-400/20 group-hover:bg-blue-400/30'}`} />
+               <Image 
+                 src={heroImg} 
+                 alt="LMS Hero Illustration" 
+                 priority 
+                 className="w-full h-auto relative z-10 drop-shadow-2xl transition-transform duration-700 group-hover:scale-105 object-contain" 
+               />
             </div>
-            <motion.div 
-              animate={{ y: [0, -20, 0] }}
-              transition={{ repeat: Infinity, duration: 4 }}
-              className="absolute -top-10 -right-10 z-20 bg-yellow-300 border-2 border-black p-4 rounded-xl shadow-lg hidden md:block"
-            >
-              <Globe className="w-8 h-8 text-black" />
-            </motion.div>
           </motion.div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24">
+          <StatCard icon={BookOpen} title="1500+ Courses" subtitle="Find your perfect path." isDark={isDark} />
+          <StatCard icon={Users} title="Expert Mentors" subtitle="Industry leading pros." isDark={isDark} />
+          <StatCard icon={Clock} title="Flexible Life" subtitle="Learn at your pace." isDark={isDark} />
         </div>
       </section>
 
-      {/* Features Section - Bento Grid Style */}
-      <section className="bg-black py-32 text-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="mb-20 text-center">
-            <h2 className="text-4xl md:text-6xl font-serif mb-6">Engineered for Excellence</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto text-lg">We stripped away the clutter to focus on what matters: your productivity.</p>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {features.map((f, i) => (
-              <motion.div 
-                whileHover={{ y: -10 }}
-                key={i} 
-                className="bg-[#1a1a1a] p-10 rounded-3xl border border-white/10 hover:border-purple-500 transition-colors"
+      {/* --- Horizontal Feature Timeline Section --- */}
+      <section 
+        className="py-24 px-6 max-w-[1440px] mx-auto backdrop-blur-3xl rounded-[4rem] shadow-2xl border relative z-10 overflow-hidden transition-all duration-500"
+        style={{
+          background: isDark 
+            ? 'linear-gradient(to bottom, rgba(30, 58, 138, 0.2), rgba(15, 23, 42, 0.4))'
+            : 'linear-gradient(to bottom, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.8))',
+          borderColor: isDark ? 'rgba(30, 64, 175, 0.3)' : 'rgba(255, 255, 255, 1)'
+        }}
+      >
+        <div className="text-center mb-20">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest mb-4 border transition-colors duration-500"
+            style={{
+              backgroundColor: isDark ? 'rgba(30, 58, 138, 0.5)' : '#eff6ff',
+              color: isDark ? '#93c5fd' : '#2563eb',
+              borderColor: isDark ? 'rgba(29, 78, 216, 1)' : '#dbeafe'
+            }}
+          >
+            <Sparkles size={16} /> Roadmap to Success
+          </motion.div>
+          <h2 className="text-5xl md:text-6xl font-black mb-6 tracking-tight transition-colors duration-500" style={{ color: isDark ? '#ffffff' : '#1A2B56' }}>
+            Our Immersive <span className="text-[#2D5BFF]">Learning Flow</span>
+          </h2>
+        </div>
+
+        <div className="relative px-4">
+          <div 
+            className="absolute top-[4.5rem] left-0 w-full h-1 hidden lg:block transition-colors duration-500" 
+            style={{ backgroundColor: isDark ? 'rgba(30, 64, 175, 0.5)' : '#f1f5f9' }}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 relative z-10">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.2 }}
+                className="group relative"
               >
-                <div className={`${f.color} w-14 h-14 rounded-2xl flex items-center justify-center mb-8`}>
-                  {f.icon}
+                <div className="flex flex-col items-center lg:items-start mb-8 relative">
+                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center text-white shadow-xl z-20 group-hover:scale-110 transition-transform duration-500`}>
+                      {feature.icon}
+                   </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-4">{f.title}</h3>
-                <p className="text-gray-400 leading-relaxed">{f.desc}</p>
+
+                <div 
+                  className="p-8 rounded-[2.5rem] border transition-all duration-500 group-hover:-translate-y-2 shadow-xl shadow-blue-900/5 group-hover:shadow-2xl"
+                  style={{
+                    backgroundColor: isDark ? 'rgba(30, 58, 138, 0.4)' : '#ffffff',
+                    borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#f8fafc'
+                  }}
+                >
+                   <h3 
+                    className="text-2xl font-bold mb-4 tracking-tight transition-colors duration-500 group-hover:text-[#2D5BFF]"
+                    style={{ color: isDark ? '#ffffff' : '#1A2B56' }}
+                   >
+                      {feature.title}
+                   </h3>
+                   <p className={`font-medium leading-relaxed mb-6 transition-colors duration-500 ${isDark ? 'text-blue-100/60' : 'text-slate-500'}`}>
+                      {feature.description}
+                   </p>
+                   <div className="flex items-center gap-2 text-sm font-bold text-[#2D5BFF] opacity-0 group-hover:opacity-100 transition-opacity">
+                      Learn More <ArrowRight size={16} />
+                   </div>
+                </div>
+                <div 
+                  className="absolute top-[4.25rem] -right-6 w-3 h-3 rounded-full hidden lg:block transition-colors duration-500" 
+                  style={{ backgroundColor: isDark ? '#1e3a8a' : '#dbeafe' }}
+                />
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing - The "Glassy" Cards */}
-      <section className="py-32 px-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-5xl font-serif mb-16 italic">Simple Pricing. No Secrets.</h2>
-          <div className="grid md:grid-cols-3 gap-8 items-end">
-            {plans.map((plan, i) => (
-              <div key={i} className={`p-8 rounded-3xl border-2 ${plan.color} bg-white transition-all hover:shadow-2xl`}>
-                {plan.popular && <span className="text-[#6336FA] font-bold text-xs tracking-widest uppercase mb-4 block">Most Popular</span>}
-                <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
-                <div className="text-5xl font-serif font-medium mb-8">{plan.price}<span className="text-sm font-sans text-gray-400">/mo</span></div>
-                <ul className="space-y-4 mb-10 text-left">
-                  {plan.features.map((feat, j) => (
-                    <li key={j} className="flex items-center gap-3 text-gray-600">
-                      <Check className="w-5 h-5 text-green-500" /> {feat}
-                    </li>
-                  ))}
-                </ul>
-                <button className={`w-full py-4 rounded-xl font-bold transition-all ${plan.popular ? 'bg-[#6336FA] text-white shadow-lg' : 'bg-gray-100 hover:bg-black hover:text-white'}`}>
-                  Choose {plan.name}
-                </button>
-              </div>
-            ))}
-          </div>
+      {/* Join Community Section */}
+      <section className="py-24 px-6 max-w-[1440px] mx-auto">
+        <div className="relative overflow-hidden rounded-[3.5rem] bg-gradient-to-br from-[#1A2B56] via-[#2D5BFF] to-[#6336FA] p-16 text-center text-white shadow-2xl">
+          <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative z-10">
+            <h2 className="text-5xl md:text-6xl font-black mb-8 text-white">Join Our Learning Community</h2>
+            <p className="text-xl text-blue-100 mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
+              Connect with thousands of learners and expert instructors. Share your progress and get hired by top companies.
+            </p>
+            <button className="bg-white text-[#2D5BFF] hover:bg-blue-50 px-12 py-5 rounded-full font-black text-xl shadow-2xl transition-transform hover:scale-105">
+              Get Started for Free
+            </button>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-100 py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-12">
-          <div className="col-span-2">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                <div className="w-3 h-3 bg-white rotate-45" />
-              </div>
-              <span className="text-2xl font-bold tracking-tighter">startup.</span>
-            </div>
-            <p className="text-gray-500 max-w-sm mb-8">
-              Redefining how teams build and ship software. Made with love for creators worldwide.
-            </p>
+      <footer 
+        className="pt-24 pb-12 px-10 text-white relative z-10 transition-colors duration-500"
+        style={{ backgroundColor: isDark ? '#0F1A36' : '#1A2B56' }}
+      >
+        <div className="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-16 border-b border-white/10 pb-16">
+          <div className="space-y-6">
+            <div className="text-3xl font-black italic tracking-tighter uppercase">Fin <span className="text-blue-400">Genius</span></div>
+            <p className="text-blue-100/60 leading-relaxed font-medium">World-class education, accessible to everyone, everywhere.</p>
           </div>
-          <div>
-            <h4 className="font-bold mb-6">Product</h4>
-            <ul className="space-y-4 text-gray-500">
-              <li><a href="#" className="hover:text-black">Features</a></li>
-              <li><a href="#" className="hover:text-black">Roadmap</a></li>
-              <li><a href="#" className="hover:text-black">API Docs</a></li>
-            </ul>
           </div>
-          <div>
-            <h4 className="font-bold mb-6">Company</h4>
-            <ul className="space-y-4 text-gray-500">
-              <li><a href="#" className="hover:text-black">About</a></li>
-              <li><a href="#" className="hover:text-black">Twitter</a></li>
-              <li><a href="#" className="hover:text-black">Contact</a></li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-6 pt-20 flex justify-between items-center text-sm text-gray-400">
-          <p>© 2026 Startup Inc.</p>
-          <div className="flex gap-8">
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-          </div>
+          
+        
+        <div className="mt-12 text-center text-blue-100/30 font-bold tracking-widest uppercase text-xs">
+          © 2026 Fin Genius Academy • All Rights Reserved
         </div>
       </footer>
     </div>
