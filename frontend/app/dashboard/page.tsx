@@ -10,7 +10,7 @@ import {
   MoreHorizontal, 
   Sparkles,
   Clock,
-  Home // Added Home icon
+  Home 
 } from "lucide-react";
 import Link from "next/link";
 
@@ -22,7 +22,6 @@ export default function DashboardPage() {
       transition={{ duration: 0.5 }}
       className="max-w-6xl mx-auto space-y-8 pb-12"
     >
-      {/* Header Section with Back Button */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest mb-3">
@@ -33,7 +32,6 @@ export default function DashboardPage() {
           </h1>
         </div>
 
-        {/* Rightmost Back Button */}
         <Link 
           href="/" 
           className="flex items-center gap-2 px-5 py-2.5 bg-background border border-input rounded-xl text-[10px] font-bold uppercase tracking-widest text-foreground hover:bg-muted hover:border-primary/50 transition-all shadow-sm active:scale-95 w-fit"
@@ -44,10 +42,8 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content Column */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* Net Worth Card */}
           <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-primary to-[#8B5CF6] p-10 text-white shadow-2xl shadow-primary/30 border border-white/10">
             <div className="relative z-10 flex justify-between">
               <div>
@@ -67,7 +63,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Learning Section */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-bold text-foreground">Continuous Growth</h3>
@@ -108,7 +103,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Sidebar Column */}
         <div className="space-y-8">
           <div className="bg-card rounded-[2rem] p-8 border border-input shadow-sm">
             <div className="flex items-center justify-between mb-8">
@@ -145,7 +139,6 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Achievement Card */}
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2rem] p-8 text-white relative overflow-hidden ring-1 ring-white/10 shadow-2xl">
              <div className="relative z-10">
                <div className="flex items-center gap-2 mb-4 text-yellow-400">
