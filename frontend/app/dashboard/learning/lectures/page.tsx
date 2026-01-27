@@ -1,11 +1,11 @@
 "use client";
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation'; // <--- IMPORT ROUTER
 import { 
-  BookOpen, CheckCircle2, Lock, Play, FileText, 
-  ChevronRight, Star, Trophy, ArrowUpCircle, X, 
-  HeartPulse, PieChart, ShieldCheck, CreditCard, Scale, TrendingUp, Clock, ArrowRightCircle, Zap, ExternalLink
+  CheckCircle2, Lock, Play, 
+  ChevronRight, Star, Trophy, X, 
+  HeartPulse, PieChart, ShieldCheck, CreditCard, Scale, TrendingUp, Clock, ArrowRightCircle, Zap
 } from 'lucide-react';
 
 // ================= TYPES =================
@@ -24,9 +24,10 @@ interface Lesson {
   icon: any; 
 }
 
-// ================= DATA =================
+// ================= DATA: 7 CHAPTERS =================
 
 const LEARNING_MODULES: Lesson[] = [
+  // --- BEGINNER ---
   {
     id: '1',
     title: 'Money Mindset',
@@ -44,7 +45,7 @@ const LEARNING_MODULES: Lesson[] = [
     difficulty: 'Beginner',
     duration: '5 min video',
     xp: 150,
-    status: 'active', 
+    status: 'active', // Current User Position
     icon: PieChart
   },
   {
@@ -57,6 +58,7 @@ const LEARNING_MODULES: Lesson[] = [
     status: 'locked',
     icon: ShieldCheck
   },
+  // --- INTERMEDIATE ---
   {
     id: '4',
     title: 'Credit Scores',
@@ -77,6 +79,7 @@ const LEARNING_MODULES: Lesson[] = [
     status: 'locked',
     icon: Scale
   },
+  // --- ADVANCED ---
   {
     id: '6',
     title: 'Stock Market Basics',
@@ -99,16 +102,20 @@ const LEARNING_MODULES: Lesson[] = [
   }
 ];
 
+// ================= HELPER FUNCTIONS =================
+
+const getGradient = (difficulty: Difficulty) => {
+  switch (difficulty) {
+    case 'Beginner': return 'from-blue-600 to-cyan-500';
+    case 'Intermediate': return 'from-violet-600 to-purple-500';
+    case 'Advanced': return 'from-orange-500 to-red-500';
+    default: return 'from-slate-700 to-slate-500';
+  }
+};
+
 // ================= COMPONENT: LESSON MODAL =================
 
 const LessonModal = ({ lesson, onClose, onComplete }: { lesson: Lesson, onClose: () => void, onComplete: () => void }) => {
-  const router = useRouter(); // <--- INITIALIZE ROUTER
-
-  const handleVideoClick = () => {
-    // Redirect to the videos page
-    router.push('/dashboard/learning/lectures');
-  };
-
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -121,7 +128,7 @@ const LessonModal = ({ lesson, onClose, onComplete }: { lesson: Lesson, onClose:
         {/* Glow Effect */}
         <div className={`absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${getGradient(lesson.difficulty)}`} />
 
-        <div className={`h-40 bg-gradient-to-br ${getGradient(lesson.difficulty)} relative p-8 flex items-end opacity-90 shrink-0`}>
+        <div className={`h-40 bg-gradient-to-br ${getGradient(lesson.difficulty)} relative p-8 flex items-end opacity-90`}>
            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay" />
            <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm">
               <X size={20} />
@@ -151,25 +158,12 @@ const LessonModal = ({ lesson, onClose, onComplete }: { lesson: Lesson, onClose:
            <div className="prose prose-invert max-w-none">
               <p className="text-lg text-slate-300 leading-relaxed mb-8">{lesson.description}</p>
               
-              {/* === CLICKABLE VIDEO CARD === */}
-              <div 
-                onClick={handleVideoClick} 
-                className="group relative aspect-video bg-slate-950 rounded-2xl flex flex-col items-center justify-center border border-slate-800 overflow-hidden mb-8 cursor-pointer hover:border-emerald-500/50 transition-all shadow-xl hover:shadow-2xl hover:shadow-emerald-500/10"
-              >
-                 {/* Background Animation */}
+              <div className="group relative aspect-video bg-slate-950 rounded-2xl flex items-center justify-center border border-slate-800 overflow-hidden mb-8 cursor-pointer hover:border-emerald-500/50 transition-colors">
                  <div className="absolute inset-0 bg-emerald-500/5 group-hover:bg-emerald-500/10 transition-colors" />
-                 
-                 {/* Play Button */}
-                 <div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center text-slate-900 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform z-10">
-                    <Play size={32} fill="currentColor" className="ml-1" />
-                 </div>
-
-                 {/* Text Hint */}
-                 <div className="absolute bottom-4 flex items-center gap-2 text-emerald-400 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0">
-                    <span>Watch Lesson</span> <ExternalLink size={14} />
+                 <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-slate-900 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform">
+                    <Play size={24} fill="currentColor" className="ml-1" />
                  </div>
               </div>
-              {/* ============================ */}
 
               <h3 className="text-white font-bold text-xl mb-4">Key Takeaways</h3>
               <ul className="space-y-3 text-slate-400">
@@ -181,16 +175,20 @@ const LessonModal = ({ lesson, onClose, onComplete }: { lesson: Lesson, onClose:
                     <CheckCircle2 size={18} className="text-emerald-500 mt-1 shrink-0" />
                     <span>Real-world applications and examples.</span>
                  </li>
+                 <li className="flex items-start gap-3">
+                    <CheckCircle2 size={18} className="text-emerald-500 mt-1 shrink-0" />
+                    <span>Actionable steps you can take today.</span>
+                 </li>
               </ul>
            </div>
         </div>
 
-        <div className="p-6 border-t border-slate-800 bg-slate-950 shrink-0">
+        <div className="p-6 border-t border-slate-800 bg-slate-950">
            <button 
              onClick={onComplete}
              className="w-full py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transform active:scale-95"
            >
-             Mark as Complete <ArrowRightCircle size={20} />
+             Complete & Claim XP <ArrowRightCircle size={20} />
            </button>
         </div>
       </motion.div>
@@ -198,18 +196,9 @@ const LessonModal = ({ lesson, onClose, onComplete }: { lesson: Lesson, onClose:
   );
 };
 
-const getGradient = (difficulty: Difficulty) => {
-  switch (difficulty) {
-    case 'Beginner': return 'from-blue-600 to-cyan-500';
-    case 'Intermediate': return 'from-violet-600 to-purple-500';
-    case 'Advanced': return 'from-orange-500 to-red-500';
-    default: return 'from-slate-700 to-slate-500';
-  }
-};
+// ================= MAIN PAGE COMPONENT =================
 
-// ================= MAIN COMPONENT =================
-
-export default function LearningPathSystem() {
+export default function LearningVideosPage() {
   const [modules, setModules] = useState(LEARNING_MODULES);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);

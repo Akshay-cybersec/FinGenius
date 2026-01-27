@@ -40,6 +40,7 @@ interface LifeStage {
   description: string;
   fixedExpenses: Record<string, number>;
   categories: string[];
+  // FIX: Explicitly define as Record to fix index error
   constraints?: Record<string, Constraint>;
   rules: FinancialRule;
   events: GameEvent[];
@@ -139,7 +140,39 @@ const getStageConfig = (level: number): LifeStage => {
   return LIFE_STAGES.find(s => level >= s.levels[0] && (s.levels.length > 2 ? level <= s.levels[s.levels.length - 1] : true)) || LIFE_STAGES[0];
 };
 
-// ================= JOYRIDE STYLES & STEPS =================
+// ================= JOYRIDE STYLES =================
+
+// FIX: Used Partial<Styles> to stop the TS error
+const TOUR_STYLES: Partial<Styles> = {
+  options: {
+    arrowColor: '#1e293b', 
+    backgroundColor: '#1e293b',
+    overlayColor: 'rgba(0, 0, 0, 0.85)',
+    primaryColor: '#10b981', 
+    textColor: '#fff',
+    width: 400,
+    zIndex: 1000,
+  },
+  tooltip: {
+    borderRadius: '16px',
+    fontSize: '14px',
+    padding: '20px', 
+  },
+  buttonNext: {
+    backgroundColor: '#10b981',
+    borderRadius: '8px',
+    color: '#fff',
+    fontWeight: 'bold',
+    outline: 'none',
+  },
+  buttonBack: {
+    color: '#94a3b8',
+    marginRight: 10,
+  },
+  buttonSkip: {
+    color: '#94a3b8',
+  }
+};
 
 const TOUR_STEPS: Step[] = [
   {
@@ -179,39 +212,7 @@ const TOUR_STEPS: Step[] = [
   },
 ];
 
-// FIX: Changed type to Partial<Styles> to fix the "missing properties" error
-const TOUR_STYLES: Partial<Styles> = {
-  options: {
-    arrowColor: '#1e293b', 
-    backgroundColor: '#1e293b',
-    overlayColor: 'rgba(0, 0, 0, 0.85)',
-    primaryColor: '#10b981', 
-    textColor: '#fff',
-    width: 400,
-    zIndex: 1000,
-  },
-  tooltip: {
-    borderRadius: '16px',
-    fontSize: '14px',
-    padding: '20px', 
-  },
-  buttonNext: {
-    backgroundColor: '#10b981',
-    borderRadius: '8px',
-    color: '#fff',
-    fontWeight: 'bold',
-    outline: 'none',
-  },
-  buttonBack: {
-    color: '#94a3b8',
-    marginRight: 10,
-  },
-  buttonSkip: {
-    color: '#94a3b8',
-  }
-};
-
-// ================= COMPONENT: CHEST SURPRISE REVEAL =================
+// ================= CHEST COMPONENT =================
 
 const ExplosionParticles = () => {
     const particles = Array.from({ length: 40 }).map((_, i) => ({
@@ -256,7 +257,6 @@ const ChestModal = ({ eventData, onComplete }: { eventData: GameEvent, onComplet
   
     useEffect(() => {
       if (phase !== 'closed') return;
-      
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -394,7 +394,7 @@ const ChestModal = ({ eventData, onComplete }: { eventData: GameEvent, onComplet
     );
 };
 
-// ================= COMPONENT: RESULT MODAL =================
+// ================= RESULT MODAL =================
 
 const ResultModal = ({ result, onNext, onRetry, isMaxLevel }: any) => {
   const isPass = result.score >= 60 && result.balance >= 0;
@@ -454,7 +454,7 @@ const ResultModal = ({ result, onNext, onRetry, isMaxLevel }: any) => {
   );
 };
 
-// ================= COMPONENT: TIMELINE (COMPACT) =================
+// ================= TIMELINE =================
 
 const LevelTimeline = ({ currentLevel, maxReached, onSelectLevel }: any) => {
   const levels = Array.from({ length: 15 }, (_, i) => i);
@@ -541,7 +541,6 @@ export default function FinancialSimulationGame() {
   const [gameState, setGameState] = useState<'playing' | 'chest' | 'result'>('playing');
   const [lastResult, setLastResult] = useState<any>(null);
   const [savingsError, setSavingsError] = useState(false);
-  
   const [runTour, setRunTour] = useState(true);
 
   const stage = useMemo(() => getStageConfig(level), [level]);
@@ -553,6 +552,7 @@ export default function FinancialSimulationGame() {
     
     const initialAlloc: Record<string, number> = {};
     stage.categories.forEach(cat => {
+      // FIX: Added fallback || 0 to prevent undefined crash on slider
       const minRequired = stage.constraints?.[cat]?.min || 0;
       initialAlloc[cat] = minRequired;
     });
@@ -566,7 +566,7 @@ export default function FinancialSimulationGame() {
   const remaining = income - totalFixed - totalAllocated;
 
   const handleSliderChange = (category: string, value: number) => {
-    // FIX: Fallback to 0 to prevent undefined errors
+    // FIX: Fallback to 0
     const currentVal = allocations[category] || 0;
     const minRequired = stage.constraints?.[category]?.min || 0;
     
@@ -743,7 +743,7 @@ export default function FinancialSimulationGame() {
                     {stage.categories.map((cat) => {
                       const constraint = stage.constraints?.[cat];
                       const minVal = constraint?.min || 0;
-                      // FIX: Added '|| 0' fallback to prevent undefined crash
+                      // FIX: Fallback || 0 added
                       const currentVal = allocations[cat] || 0;
                       const isError = cat === 'savings' && savingsError;
 
@@ -762,8 +762,8 @@ export default function FinancialSimulationGame() {
                                 )}
                             </div>
                             <span className={`${currentVal === minVal && constraint ? 'text-red-400' : 'text-emerald-400'} font-bold`}>
-                                {/* FIX: toLocaleString() now safe because currentVal has fallback */}
-                                ₹{currentVal.toLocaleString()}
+                                {/* FIX: Safe .toLocaleString() */}
+                                ₹{(currentVal).toLocaleString()}
                             </span>
                           </div>
                           
@@ -797,7 +797,6 @@ export default function FinancialSimulationGame() {
 
             {/* RIGHT: DASHBOARD */}
             <div className="space-y-6">
-               
                <div className={`tour-dashboard p-8 rounded-[2rem] border transition-colors relative overflow-hidden ${remaining < 0 ? 'bg-red-950/30 border-red-500/50' : 'bg-slate-900 border-slate-700'}`}>
                   <div className="relative z-10">
                       <div className="flex justify-between items-start mb-2">
@@ -840,7 +839,7 @@ export default function FinancialSimulationGame() {
                   </ul>
                </div>
 
-               {/* FINISH BUTTON - FIX: Removed 'spring' type to fix multi-frame error */}
+               {/* FIX: Removed spring animation type to fix crash */}
                <motion.button
                   className={`tour-finish w-full py-5 rounded-2xl font-black text-xl shadow-lg flex items-center justify-center gap-2 transition-all 
                     ${savingsError 
@@ -860,7 +859,6 @@ export default function FinancialSimulationGame() {
       </div>
 
       <AnimatePresence mode="wait">
-        {/* CHEST MODAL */}
         {gameState === 'chest' && lastResult && (
              <ChestModal 
                 key="chest-modal"
@@ -869,7 +867,6 @@ export default function FinancialSimulationGame() {
              />
         )}
         
-        {/* RESULT MODAL */}
         {gameState === 'result' && lastResult && (
           <ResultModal 
             key="result-modal"
