@@ -8,7 +8,12 @@ import { notFound } from 'next/navigation';
 // --- Import Your Game Components ---
 // Ensure this path matches where you saved the BudgetArchitect file
 import BudgetArchitect from '@/components/games/BudgetArchitect';
-
+import Emergency from '@/components/games/Emergency';
+import {DebtDestroyer} from '@/components/games/DebtDestroyer'; 
+import Credit from '@/components/games/Credit';
+import GoodBad from '@/components/games/GoodBad'; 
+import {StockSimulator} from '@/components/games/StockSimulator';
+import Retirement from '@/components/games/Retirement';
 // Future imports (Commented out until you create them)
 // import StockSimulator from '@/components/games/StockSimulator'; 
 // import DebtDestroyer from '@/components/games/DebtDestroyer'; 
@@ -39,13 +44,23 @@ export default function LecturePage({ params }: PageProps) {
         );
 
       case 'debt':
-        return (
-          <PlaceholderGame 
-            title="Debt Destroyer" 
-            icon={<Gamepad2 size={48} />}
-            description="Gamified strategies to pay off high-interest debt efficiently."
-          />
-        );
+        return <DebtDestroyer />;
+
+        
+        case '3':
+        return <Emergency />;
+
+         case '4':
+        return <Credit />;
+
+        case '5':
+        return <GoodBad />;
+
+        case '6':
+        return <StockSimulator />;
+
+        case '7':
+        return <Retirement />;
 
       default:
         // If the ID doesn't match any known game, show 404
