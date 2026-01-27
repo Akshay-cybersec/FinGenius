@@ -1,69 +1,127 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { 
+  LayoutDashboard, 
+  BookOpen, 
+  TrendingUp, 
+  PieChart, 
+  Gamepad2, 
+  GraduationCap, 
+  Trophy, 
+  LogOut, 
+  Menu, 
+  X,
+  Laptop
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, TrendingUp, Trophy, PieChart, Target, LifeBuoy, LogOut } from "lucide-react";
+
+const menuItems = [
+  { name: "Overview", icon: LayoutDashboard, href: "/dashboard" },
+  { name: "Quiz System", icon: BookOpen, href: "/dashboard/quiz" },
+  { name: "Budget Simulator", icon: TrendingUp, href: "/dashboard/budget" },
+  { name: "Investment Simulation", icon: PieChart, href: "/dashboard/investment" },
+  { name: "Game", icon: Gamepad2, href: "/dashboard/game" },
+  { name: "Learning", icon: GraduationCap, href: "/dashboard/learning" },
+  { name: "LeaderBoard", icon: Trophy, href: "/dashboard/leaderboard" },
+];
 
 export default function Sidebar() {
+  const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  const navItems = [
-    { name: "Overview", icon: LayoutDashboard, href: "/dashboard" },
-    { name: "Quiz System ", icon: BookOpen, href: "/dashboard/quiz" },
-    { name: "Budget Simulator", icon: TrendingUp, href: "/dashboard/budget" },
-    { name: "Investment Simulation", icon: PieChart, href: "/dashboard/investment" },
-    { name: "Game", icon: Target, href: "/dashboard/game" },
-    { name: "Learning", icon: Trophy, href: "/dashboard/learning" },
-    { name: "LeaderBoard", icon: Trophy, href: "/dashboard/leaderboard" },
-  ];
+  const activeClass = `
+    bg-primary/10 text-primary border-r-4 border-primary 
+    shadow-[0_0_25px_rgba(99,54,250,0.15)] 
+    dark:shadow-[0_0_30px_rgba(99,54,250,0.25)]
+  `;
+
+  const hoverClass = `
+    text-muted-foreground hover:bg-primary/5 hover:text-primary 
+    hover:shadow-[0_0_15px_rgba(99,54,250,0.1)]
+    dark:hover:shadow-[0_0_20px_rgba(99,54,250,0.15)]
+  `;
 
   return (
-    <aside className="hidden lg:flex flex-col w-72 h-screen fixed left-0 top-0 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 z-40">
-      <div className="p-8 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/30">
-            <TrendingUp size={22} strokeWidth={2.5} />
-          </div>
-          <span className="font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white">FinGenius</span>
+    <>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2.5 rounded-xl bg-background/80 backdrop-blur-md shadow-lg border border-border transition-all active:scale-95"
+      >
+        {isOpen ? <X size={20} className="text-primary" /> : <Menu size={20} className="text-primary" />}
+      </button>
+
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity" 
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      <aside className={`
+        fixed top-0 left-0 z-40 h-screen w-72 transition-all duration-300 ease-in-out
+        bg-background border-r border-border flex flex-col overflow-hidden
+        ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}>
+        
+        <div className="p-8 shrink-0">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center transform group-hover:rotate-12 transition-all duration-300 shadow-lg shadow-primary/30 group-hover:shadow-primary/50">
+              <Laptop className="text-primary-foreground w-5 h-5" />
+            </div>
+            <span className="text-xl font-black tracking-tight flex items-center">
+              <span className="text-foreground">Fin</span>
+              <span className="bg-gradient-to-br from-[#6336FA] to-[#8B5CF6] bg-clip-text text-transparent">
+                Genius
+              </span>
+            </span>
+          </Link>
         </div>
-      </div>
 
-      <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
-        <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Menu</p>
-        {navItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link href={item.href} key={item.href}>
-              <div className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all duration-200 group relative
-                ${isActive 
-                  ? 'bg-primary text-white shadow-xl shadow-primary/25 font-semibold' 
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary dark:hover:text-primary-light'
-                }`}
+        {/* CHANGE: Added 'scrollbar-hide' and 'overflow-y-auto' 
+            to the nav only, preventing the main sidebar container 
+            from flickering.
+        */}
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto py-4 scrollbar-hide">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`
+                  flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-bold transition-all duration-300 group relative overflow-hidden
+                  ${isActive ? activeClass : hoverClass}
+                `}
               >
-                <item.icon size={20} className={isActive ? 'text-white' : 'group-hover:text-primary'} />
-                <span>{item.name}</span>
-                {isActive && <div className="absolute right-3 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
-              </div>
-            </Link>
-          );
-        })}
+                {!isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
 
-        <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-wider mt-8 mb-2">Support</p>
-        <Link href="/dashboard/help">
-          <div className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all">
-            <LifeBuoy size={20} />
-            <span>Help Center</span>
-          </div>
-        </Link>
-      </nav>
+                <item.icon 
+                  size={20} 
+                  className={`
+                    transition-all duration-300 
+                    ${isActive ? "text-primary scale-110" : "group-hover:text-primary group-hover:scale-110"}
+                  `} 
+                />
+                
+                <span className="relative z-10 transition-transform duration-300 group-hover:translate-x-1">
+                  {item.name}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
 
-      <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-        <button className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors font-medium">
-          <LogOut size={20} />
-          <span>Log Out</span>
-        </button>
-      </div>
-    </aside>
+        <div className="p-6 border-t border-border shrink-0 bg-background">
+          <button className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-sm font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-all active:scale-95 group">
+            <LogOut size={20} className="transition-transform group-hover:-translate-x-1" />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
