@@ -17,6 +17,7 @@ load_dotenv()
 MONGO_URI = os.getenv("MONGO_URI")
 CLERK_ISSUER = os.getenv("CLERK_ISSUER")
 
+# Initialize MongoDB
 client = MongoClient(MONGO_URI)
 db = client["finquest"]
 users_col = db["users"]
@@ -35,6 +36,12 @@ class QuizSubmission(BaseModel):
 class RedeemRequest(BaseModel):
     item_id: str
 
+class LearningUpdate(BaseModel):
+    module_id: str  # e.g., "budgeting", "investing", "debt"
+    percentage: int # e.g., 100
+    xp_earned: int  # e.g., 50
+
+# --- Security ---
 security = HTTPBearer()
 jwks = requests.get(f"{CLERK_ISSUER}/.well-known/jwks.json").json()
 
@@ -54,20 +61,25 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     except:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+# --- Helper Functions ---
 
 def update_user_activity(clerk_id: str):
+    """
+    Updates streak, activity log, and ensures all new DB fields (learning/milestones) exist.
+    """
     today_str = datetime.utcnow().strftime("%Y-%m-%d")
     yesterday_str = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
     
     user = users_col.find_one({"clerk_id": clerk_id})
 
-    # Default structure for new features
+    # Default structure for learning
     default_learning = {
         "budgeting": {"percentage": 0, "xp": 0, "status": "not_started"},
         "investing": {"percentage": 0, "xp": 0, "status": "not_started"},
         "debt": {"percentage": 0, "xp": 0, "status": "not_started"}
     }
     
+    # Default milestones
     default_milestones = {
         "first_quiz_completed": False,
         "budget_simulator_used": False,
@@ -78,7 +90,7 @@ def update_user_activity(clerk_id: str):
         # Create new user
         new_user = {
             "clerk_id": clerk_id,
-            "name": "User", # You might want to get this from Clerk frontend
+            "name": "User", 
             "balance": 100000,
             "level": 1,
             "xp": 0,
@@ -86,12 +98,13 @@ def update_user_activity(clerk_id: str):
             "activity_log": [today_str],
             "daily_quiz": {"last_attempt_date": "", "score": 0},
             "learning_progress": default_learning,
-            "milestones": default_milestones
+            "milestones": default_milestones,
+            "inventory": []
         }
         users_col.insert_one(new_user)
         return
 
-    # Logic to update streak (Existing logic)
+    # Logic to update streak
     streak_data = user.get("streak", {"current": 0, "last_active_date": ""})
     current_streak = streak_data.get("current", 0)
     last_active = streak_data.get("last_active_date", "")
@@ -104,16 +117,18 @@ def update_user_activity(clerk_id: str):
     else:
         new_streak = 1
 
-    # Update DB with new fields if they are missing (Self-Healing)
+    # Fields to update
     update_fields = {
         "streak": {"current": new_streak, "last_active_date": today_str}
     }
     
-    # Only set these if they don't exist to avoid overwriting progress
+    # Self-Healing: Add missing fields if they don't exist
     if "learning_progress" not in user:
         update_fields["learning_progress"] = default_learning
     if "milestones" not in user:
         update_fields["milestones"] = default_milestones
+    if "inventory" not in user:
+        update_fields["inventory"] = []
 
     users_col.update_one(
         {"clerk_id": clerk_id},
@@ -124,7 +139,7 @@ def update_user_activity(clerk_id: str):
     )
 
 async def price_engine():
-    """Simulates market movement"""
+    """Simulates market movement in background"""
     while True:
         assets = list(assets_col.find())
         if not assets:
@@ -151,33 +166,60 @@ async def price_engine():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize Store Items
     if store_col.count_documents({}) == 0:
         store_col.insert_many([
+            {
+                "item_id": "shirt_finance_nerd",
+                "name": "Finance Nerd T-Shirt",
+                "description": "Premium cotton tee for the data-driven trader.",
+                "cost": 1500,
+                "type": "merch",
+                "image_url": "https://m.media-amazon.com/images/I/A13usaonutL._CLa%7C2140%2C2000%7C61S701-4jZL.png%7C0%2C0%2C2140%2C2000%2B0.0%2C0.0%2C2140.0%2C2000.0_AC_UY1000_.png"
+            },
+            {
+                "item_id": "mug_bull_market",
+                "name": "Bull Market Coffee Mug",
+                "description": "Start your trading day with bullish energy.",
+                "cost": 800,
+                "type": "merch",
+                "image_url": "https://m.media-amazon.com/images/I/51r-7O-E+BL.jpg"
+            },
+            {
+                "item_id": "hoodie_trader",
+                "name": "Eat Sleep Trade Hoodie",
+                "description": "Stay warm while watching the charts freeze.",
+                "cost": 2500,
+                "type": "merch",
+                "image_url": "https://m.media-amazon.com/images/I/61kM2-2yJAL._AC_UY1000_.jpg"
+            },
+            {
+                "item_id": "cap_buy_low",
+                "name": "'Buy Low' Cap",
+                "description": "The golden rule of investing, now on your head.",
+                "cost": 1200,
+                "type": "merch",
+                "image_url": "https://m.media-amazon.com/images/I/61s+i-v87LL._AC_UY1000_.jpg"
+            },
+            {
+                "item_id": "decor_wall_street",
+                "name": "Wall St Desk Sign",
+                "description": "Bring the NYSE vibe to your home setup.",
+                "cost": 2000,
+                "type": "decor",
+                "image_url": "https://m.media-amazon.com/images/I/51WlO-3+QSL._AC_UF894,1000_QL80_.jpg"
+            },
             {
                 "item_id": "theme_dark_gold",
                 "name": "Gold & Black Theme",
                 "description": "Exclusive dashboard color scheme.",
                 "cost": 500,
                 "type": "cosmetic",
-                "image_url": "https://example.com/gold-theme.png"
-            },
-            {
-                "item_id": "badge_pro_trader",
-                "name": "Pro Trader Badge",
-                "description": "Display a badge next to your name on leaderboard.",
-                "cost": 1000,
-                "type": "badge",
-                "image_url": "https://example.com/badge.png"
-            },
-            {
-                "item_id": "feature_analytics_plus",
-                "name": "Analytics Pro",
-                "description": "Unlock advanced portfolio charts.",
-                "cost": 2500,
-                "type": "feature",
-                "image_url": "https://example.com/analytics.png"
+                "image_url": "https://m.media-amazon.com/images/I/41K+4rC6bCL._AC_UF1000,1000_QL80_.jpg"
             }
         ])
+    
+    # Initialize Assets
     if assets_col.count_documents({}) == 0:
         assets_col.insert_many([
             {"name":"TechNova Corp","ticker":"TNV","price":145,"change":0,"risk":"High","type":"Stocks"},
@@ -227,16 +269,20 @@ async def market_ws(websocket: WebSocket):
         manager.disconnect(websocket)
 
 
+# ====================================================================
+#  DASHBOARD ENDPOINT (Constructs the exact JSON structure required)
+# ====================================================================
 @app.get("/dashboard")
 def get_dashboard(clerk_id: str = Depends(get_current_user)):
     update_user_activity(clerk_id)
     
     user = users_col.find_one({"clerk_id": clerk_id}, {"_id": 0})
     
+    # 1. Calculate XP / Level Progress
     xp_needed = (user.get("level", 1) * 1000)
     progress_pct = (user.get("xp", 0) / xp_needed) * 100 if xp_needed > 0 else 0
     
-
+    # 2. Construct Track Progress (Learning Modules)
     module_meta = {
         "budgeting": "Personal Budgeting",
         "investing": "Basics of Investing",
@@ -245,10 +291,12 @@ def get_dashboard(clerk_id: str = Depends(get_current_user)):
     
     user_modules = user.get("learning_progress", {})
     formatted_modules = []
-    total_completion = 0
+    total_percentage = 0
     
     for mod_id, title in module_meta.items():
+        # Get module data or default to empty
         data = user_modules.get(mod_id, {"percentage": 0, "xp": 0, "status": "not_started"})
+        
         formatted_modules.append({
             "module_id": mod_id,
             "title": title,
@@ -256,14 +304,16 @@ def get_dashboard(clerk_id: str = Depends(get_current_user)):
             "xp_earned": data.get("xp", 0),
             "status": data.get("status", "not_started")
         })
-        total_completion += data.get("percentage", 0)
+        total_percentage += data.get("percentage", 0)
         
-    avg_completion = round(total_completion / len(module_meta)) if module_meta else 0
+    avg_completion = round(total_percentage / len(module_meta)) if module_meta else 0
 
-
+    # 3. Construct Leaderboard
     total_users = users_col.count_documents({})
+    # Count how many users have MORE XP than current user, then add 1
     user_rank = users_col.count_documents({"xp": {"$gt": user.get("xp", 0)}}) + 1
     
+    # Fetch top 3 users
     top_docs = list(users_col.find({}, {"_id": 0, "clerk_id": 1, "name": 1, "xp": 1, "level": 1})
                     .sort("xp", -1)
                     .limit(3))
@@ -273,11 +323,12 @@ def get_dashboard(clerk_id: str = Depends(get_current_user)):
         top_users_formatted.append({
             "rank": idx + 1,
             "user_id": doc.get("clerk_id"), 
-            "name": doc.get("name", f"User {doc.get('clerk_id')[-4:]}"), 
+            "name": doc.get("name", f"User {str(doc.get('clerk_id'))[-4:]}"), 
             "xp": doc.get("xp", 0),
             "level": doc.get("level", 1)
         })
 
+    # 4. Construct Final Response
     return {
         "user_data": {
             "balance": user["balance"],
@@ -312,6 +363,37 @@ def get_dashboard(clerk_id: str = Depends(get_current_user)):
         }
     }
 
+# ====================================================================
+#  NEW ENDPOINT: Learning Progress Update
+# ====================================================================
+@app.post("/learning/update")
+def update_learning_progress(data: LearningUpdate, clerk_id: str = Depends(get_current_user)):
+    """
+    Called by frontend when user finishes a game/module.
+    """
+    status = "completed" if data.percentage >= 100 else "in_progress"
+    
+    # Dynamic field names for MongoDB update
+    update_query = {
+        "$set": {
+            f"learning_progress.{data.module_id}.percentage": data.percentage,
+            f"learning_progress.{data.module_id}.status": status,
+            # Update milestones if relevant
+            "milestones.budget_simulator_used": True if data.module_id == "budgeting" and data.percentage > 0 else None
+        },
+        "$inc": {
+            f"learning_progress.{data.module_id}.xp": data.xp_earned,
+            "xp": data.xp_earned
+        }
+    }
+    
+    # Remove None values from $set
+    update_query["$set"] = {k: v for k, v in update_query["$set"].items() if v is not None}
+
+    users_col.update_one({"clerk_id": clerk_id}, update_query)
+    update_user_activity(clerk_id)
+    return {"message": "Progress updated"}
+
 @app.get("/leaderboard")
 def get_leaderboard():
     """Returns top 10 users by XP"""
@@ -344,11 +426,12 @@ def submit_quiz(data: QuizSubmission, clerk_id: str = Depends(get_current_user))
             "$set": {
                 "xp": new_xp, 
                 "level": current_level,
-                "daily_quiz": {"last_attempt_date": today_str, "score": data.score}
+                "daily_quiz": {"last_attempt_date": today_str, "score": data.score},
+                "milestones.first_quiz_completed": True
             }
         }
     )
-    update_user_activity(clerk_id) # Mark activity
+    update_user_activity(clerk_id)
     return {"message": "Quiz Submitted", "xp_gained": xp_gained, "new_level": current_level}
 
 @app.get("/portfolio")
@@ -362,7 +445,7 @@ def get_market():
 
 @app.post("/trade/buy")
 def buy_asset(data: TradeRequest, clerk_id: str = Depends(get_current_user)):
-    update_user_activity(clerk_id) # Track activity
+    update_user_activity(clerk_id)
     
     asset = assets_col.find_one({"ticker": data.ticker})
     user = users_col.find_one({"clerk_id": clerk_id})
@@ -374,7 +457,13 @@ def buy_asset(data: TradeRequest, clerk_id: str = Depends(get_current_user)):
     if user["balance"] < cost:
         raise HTTPException(status_code=400, detail="Insufficient funds")
     
-    users_col.update_one({"clerk_id": clerk_id},{"$inc": {"balance": -cost}})
+    users_col.update_one(
+        {"clerk_id": clerk_id},
+        {
+            "$inc": {"balance": -cost},
+            "$set": {"milestones.first_investment_simulation": True}
+        }
+    )
     
     portfolio_col.update_one(
         {"clerk_id": clerk_id, "ticker": data.ticker},
@@ -385,7 +474,7 @@ def buy_asset(data: TradeRequest, clerk_id: str = Depends(get_current_user)):
 
 @app.post("/trade/sell")
 def sell_asset(data: TradeRequest, clerk_id: str = Depends(get_current_user)):
-    update_user_activity(clerk_id) # Track activity
+    update_user_activity(clerk_id)
     
     holding = portfolio_col.find_one({"clerk_id": clerk_id, "ticker": data.ticker})
     asset = assets_col.find_one({"ticker": data.ticker})
