@@ -1,11 +1,12 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Joyride, { CallBackProps, STATUS, Step, Styles } from 'react-joyride';
 import { 
   User, GraduationCap, Briefcase, Home, TrendingUp, 
   AlertTriangle, CheckCircle2, Lock, Unlock, ArrowRight, 
   RefreshCcw, HeartPulse, Star, MapPin, ChevronRight, AlertCircle, LucideIcon, 
-  Package, Sparkles, Timer 
+  Package, Sparkles, Timer, Gift, TrendingDown, RotateCcw
 } from 'lucide-react';
 
 // ================= TYPES =================
@@ -64,7 +65,8 @@ const LIFE_STAGES: LifeStage[] = [
     rules: { minSavings: 0.10 },
     events: [
       { text: "Found ₹500 on the street!", amount: 500, type: 'good' },
-      { text: "Lost your wallet.", amount: -200, type: 'bad' }
+      { text: "Lost your wallet.", amount: -200, type: 'bad' },
+      { text: "Grandma gave you birthday money.", amount: 1000, type: 'good' }
     ]
   },
   {
@@ -85,7 +87,8 @@ const LIFE_STAGES: LifeStage[] = [
     rules: { minSavings: 0.10 },
     events: [
       { text: "Urgent textbook needed.", amount: -800, type: 'bad' },
-      { text: "Won a scholarship!", amount: 1500, type: 'good' }
+      { text: "Won a scholarship!", amount: 1500, type: 'good' },
+      { text: "Laptop repair needed.", amount: -2000, type: 'bad' }
     ]
   },
   {
@@ -105,7 +108,8 @@ const LIFE_STAGES: LifeStage[] = [
     rules: { minSavings: 0.20 },
     events: [
       { text: "Performance Bonus!", amount: 3000, type: 'good' },
-      { text: "Medical checkup.", amount: -2000, type: 'bad' }
+      { text: "Medical checkup.", amount: -2000, type: 'bad' },
+      { text: "Side hustle payout.", amount: 1500, type: 'good' }
     ]
   },
   {
@@ -125,7 +129,8 @@ const LIFE_STAGES: LifeStage[] = [
     rules: { minSavings: 0.25 },
     events: [
       { text: "Car breakdown.", amount: -5000, type: 'bad' },
-      { text: "Tax refund!", amount: 4000, type: 'good' }
+      { text: "Tax refund!", amount: 4000, type: 'good' },
+      { text: "Wedding gift for friend.", amount: -3000, type: 'neutral' }
     ]
   }
 ];
@@ -134,14 +139,123 @@ const getStageConfig = (level: number): LifeStage => {
   return LIFE_STAGES.find(s => level >= s.levels[0] && (s.levels.length > 2 ? level <= s.levels[s.levels.length - 1] : true)) || LIFE_STAGES[0];
 };
 
-// ================= COMPONENT: CHEST MODAL =================
+// ================= JOYRIDE STYLES & STEPS =================
 
-const ChestModal = ({ onOpen }: { onOpen: () => void }) => {
+const TOUR_STEPS: Step[] = [
+  {
+    target: 'body',
+    placement: 'center',
+    content: (
+      <div className="text-center">
+        <h3 className="font-bold text-lg mb-2">Welcome to Budget Simulator! 🎓</h3>
+        <p>Your goal is to survive the month, save money, and level up from a Teenager to a Wealth Builder.</p>
+      </div>
+    ),
+    disableBeacon: true,
+  },
+  {
+    target: '.tour-timeline',
+    content: 'This is your Life Journey. As you pass levels, you will unlock new life stages like College and First Job.',
+  },
+  {
+    target: '.tour-income',
+    content: 'This is your Monthly Income. It changes based on your life stage.',
+  },
+  {
+    target: '.tour-fixed',
+    content: 'These are Fixed Expenses (like Rent). They are auto-deducted. You cannot change these.',
+  },
+  {
+    target: '.tour-sliders',
+    content: 'This is where you play! Use the sliders to allocate your remaining budget. Watch out for mandatory minimums (locks)!',
+  },
+  {
+    target: '.tour-dashboard',
+    content: 'Keep an eye on this! Make sure you have enough "Disposable Remaining" for emergencies.',
+  },
+  {
+    target: '.tour-finish',
+    content: 'Once you are happy with your budget, click here to end the month and see if you survived!',
+  },
+];
+
+// FIX: Changed type to Partial<Styles> to fix the "missing properties" error
+const TOUR_STYLES: Partial<Styles> = {
+  options: {
+    arrowColor: '#1e293b', 
+    backgroundColor: '#1e293b',
+    overlayColor: 'rgba(0, 0, 0, 0.85)',
+    primaryColor: '#10b981', 
+    textColor: '#fff',
+    width: 400,
+    zIndex: 1000,
+  },
+  tooltip: {
+    borderRadius: '16px',
+    fontSize: '14px',
+    padding: '20px', 
+  },
+  buttonNext: {
+    backgroundColor: '#10b981',
+    borderRadius: '8px',
+    color: '#fff',
+    fontWeight: 'bold',
+    outline: 'none',
+  },
+  buttonBack: {
+    color: '#94a3b8',
+    marginRight: 10,
+  },
+  buttonSkip: {
+    color: '#94a3b8',
+  }
+};
+
+// ================= COMPONENT: CHEST SURPRISE REVEAL =================
+
+const ExplosionParticles = () => {
+    const particles = Array.from({ length: 40 }).map((_, i) => ({
+        id: i,
+        angle: Math.random() * 360,
+        dist: 50 + Math.random() * 100,
+        size: 3 + Math.random() * 5,
+        color: ['#FBBF24', '#34D399', '#60A5FA', '#F472B6', '#FFFFFF'][Math.floor(Math.random() * 5)],
+        delay: Math.random() * 0.2
+    }));
+
+    return (
+        <>
+            {particles.map((p) => (
+                <motion.div
+                    key={p.id}
+                    initial={{ x: 0, y: 0, scale: 0, opacity: 1 }}
+                    animate={{ 
+                        x: p.dist * Math.cos(p.angle * (Math.PI / 180)), 
+                        y: p.dist * Math.sin(p.angle * (Math.PI / 180)), 
+                        scale: 0, 
+                        opacity: 0 
+                    }}
+                    transition={{ duration: 0.6, delay: p.delay, ease: "easeOut" }}
+                    style={{ 
+                        position: 'absolute', 
+                        width: p.size, 
+                        height: p.size, 
+                        borderRadius: '50%', 
+                        backgroundColor: p.color,
+                        zIndex: 10
+                    }}
+                />
+            ))}
+        </>
+    );
+};
+
+const ChestModal = ({ eventData, onComplete }: { eventData: GameEvent, onComplete: () => void }) => {
     const [timeLeft, setTimeLeft] = useState(5);
-    const [isOpen, setIsOpen] = useState(false);
+    const [phase, setPhase] = useState<'closed' | 'opening' | 'revealed'>('closed');
   
     useEffect(() => {
-      if (isOpen) return;
+      if (phase !== 'closed') return;
       
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
@@ -154,84 +268,198 @@ const ChestModal = ({ onOpen }: { onOpen: () => void }) => {
         });
       }, 1000);
       return () => clearInterval(timer);
-    }, [isOpen]);
+    }, [phase]);
   
     const handleOpen = () => {
-      setIsOpen(true);
-      // Small delay for animation before showing actual result
-      setTimeout(onOpen, 1000); 
+      setPhase('opening');
+      setTimeout(() => setPhase('revealed'), 600); 
     };
+
+    const isGood = eventData.type === 'good';
   
     return (
       <motion.div 
+        key="chest-modal"
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
       >
-        <div className="relative text-center w-full max-w-sm">
+        <div className="relative text-center w-full max-w-sm flex flex-col items-center justify-center min-h-[400px]">
            
-           {!isOpen ? (
+           {/* PHASE 1: CLOSED CHEST */}
+           {phase === 'closed' && (
              <motion.div
                 key="closed"
-                initial={{ scale: 0.8, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                className="flex flex-col items-center"
+                initial={{ scale: 0.5, y: 100, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0, transition: { duration: 0.2 } }}
+                className="flex flex-col items-center relative z-10"
              >
-                <div className="mb-6">
-                    <h2 className="text-2xl font-black text-white mb-2">Month Complete!</h2>
-                    <p className="text-slate-400">Open your rewards box...</p>
+                <div className="mb-8">
+                    <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 to-yellow-600 mb-2 drop-shadow-sm">Mystery Event</h2>
+                    <p className="text-slate-400 font-medium">Tap to see what life throws at you!</p>
                 </div>
   
                 <motion.button 
                    onClick={handleOpen}
-                   whileHover={{ scale: 1.05, rotate: [-1, 1, -1, 1, 0] }}
+                   whileHover={{ scale: 1.05 }}
                    whileTap={{ scale: 0.95 }}
                    animate={{ 
                       y: [0, -10, 0],
-                      filter: ["brightness(1)", "brightness(1.2)", "brightness(1)"]
+                      rotate: [0, -2, 2, -2, 0]
                    }}
-                   transition={{ repeat: Infinity, duration: 2 }}
+                   transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                    className="relative group cursor-pointer"
                 >
-                    <div className="absolute inset-0 bg-yellow-500 blur-[60px] opacity-20 group-hover:opacity-40 transition-opacity" />
-                    <Package size={140} className="text-yellow-400 drop-shadow-2xl relative z-10" strokeWidth={1.5} />
-                    <Sparkles className="absolute -top-4 -right-4 text-yellow-200 animate-pulse" size={40} />
+                    <div className="absolute inset-0 bg-yellow-500 blur-[80px] opacity-20 group-hover:opacity-40 transition-opacity rounded-full" />
+                    <Package size={160} className="text-yellow-400 drop-shadow-2xl relative z-10 filter brightness-110" strokeWidth={1.5} />
+                    <Sparkles className="absolute -top-4 -right-4 text-white drop-shadow-lg animate-pulse" size={40} />
                 </motion.button>
   
-                <div className="mt-8 w-full bg-slate-800 h-2 rounded-full overflow-hidden max-w-[200px] mx-auto relative">
-                    <motion.div 
-                        initial={{ width: "100%" }}
-                        animate={{ width: "0%" }}
-                        transition={{ duration: 5, ease: "linear" }}
-                        className="absolute left-0 top-0 h-full bg-yellow-500" 
-                    />
-                </div>
-                <div className="mt-2 flex items-center justify-center gap-2 text-yellow-500 font-mono text-sm">
-                    <Timer size={14} /> Auto-opening in {timeLeft}s
+                <div className="mt-8 flex items-center justify-center gap-2 text-yellow-500 font-mono font-bold text-sm bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20">
+                    <Timer size={14} /> Opening in {timeLeft}s
                 </div>
              </motion.div>
-           ) : (
+           )}
+
+           {/* PHASE 2: EXPLOSION ANIMATION */}
+           {phase === 'opening' && (
+             <motion.div key="opening" className="flex flex-col items-center relative">
+                 <ExplosionParticles />
+                 <motion.div
+                    initial={{ scale: 0.8, opacity: 1 }}
+                    animate={{ scale: 1.5, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="relative z-20"
+                 >
+                     <Package size={160} className="text-white" />
+                 </motion.div>
+             </motion.div>
+           )}
+
+           {/* PHASE 3: SURPRISE REVEAL CARD */}
+           {phase === 'revealed' && (
              <motion.div
-                key="opening"
-                initial={{ scale: 0.5, opacity: 0 }}
-                animate={{ scale: 1.5, opacity: 1 }}
-                className="flex flex-col items-center"
+                key="revealed"
+                initial={{ scale: 0.5, opacity: 0, y: 50 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                className={`
+                    relative z-30 p-8 rounded-3xl border-2 shadow-2xl w-full max-w-sm overflow-hidden
+                    ${isGood ? 'bg-slate-900 border-yellow-500 shadow-yellow-500/20' : 'bg-slate-900 border-red-500 shadow-red-500/20'}
+                `}
              >
-                 <div className="absolute inset-0 bg-white blur-[80px] opacity-30" />
-                 <Sparkles size={100} className="text-yellow-300 animate-spin-slow" />
+                <div className={`absolute inset-0 blur-3xl opacity-20 ${isGood ? 'bg-yellow-500' : 'bg-red-500'}`} />
+                <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
+                    className={`absolute -top-[50%] -left-[50%] w-[200%] h-[200%] opacity-10 bg-[conic-gradient(from_0deg,transparent_0deg,white_90deg,transparent_180deg)]`} 
+                />
+
+                <motion.div 
+                    initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, type: "spring" }}
+                    className={`relative w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-6 border-4 
+                    ${isGood ? 'bg-yellow-500 border-white text-white' : 'bg-red-500 border-slate-900 text-white'}
+                    `}
+                >
+                    {isGood ? <Gift size={40} /> : <AlertTriangle size={40} />}
+                </motion.div>
+
+                <h3 className={`relative text-sm font-bold uppercase tracking-widest mb-2 ${isGood ? 'text-yellow-400' : 'text-red-400'}`}>
+                    {isGood ? 'Lucky Surprise!' : 'Unexpected Event'}
+                </h3>
+                
+                <h2 className="relative text-2xl font-black text-white mb-4 leading-tight">
+                    {eventData.text}
+                </h2>
+
+                <div className={`relative text-4xl font-black mb-8 ${isGood ? 'text-emerald-400' : 'text-red-500'}`}>
+                    {isGood ? '+' : ''}₹{Math.abs(eventData.amount)}
+                </div>
+
+                <motion.button
+                    onClick={onComplete}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`relative w-full py-4 rounded-xl font-bold text-lg text-slate-900 shadow-lg cursor-pointer
+                        ${isGood ? 'bg-yellow-400 hover:bg-yellow-300' : 'bg-white hover:bg-slate-200'}
+                    `}
+                >
+                    See Level Results <ArrowRight size={18} className="inline ml-1" />
+                </motion.button>
+
              </motion.div>
            )}
         </div>
       </motion.div>
     );
-  };
+};
 
-// ================= COMPONENT: TIMELINE =================
+// ================= COMPONENT: RESULT MODAL =================
+
+const ResultModal = ({ result, onNext, onRetry, isMaxLevel }: any) => {
+  const isPass = result.score >= 60 && result.balance >= 0;
+
+  return (
+    <motion.div 
+      key="result-modal"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+    >
+      <motion.div 
+        initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
+        className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl p-8 shadow-2xl relative overflow-hidden"
+      >
+        <div className={`absolute top-0 left-0 w-full h-2 ${isPass ? 'bg-emerald-500' : 'bg-red-500'}`} />
+        
+        <div className="text-center mb-6">
+          <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${isPass ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
+            {isPass ? <TrendingUp size={40} /> : <TrendingDown size={40} />}
+          </div>
+          <h2 className="text-3xl font-black text-white mb-2">{isPass ? 'Month Passed!' : 'Budget Failed'}</h2>
+          <p className="text-slate-400">{isPass ? 'Level complete! You survived.' : 'You ran out of money or broke rules.'}</p>
+        </div>
+
+        <div className="space-y-4 mb-8">
+          <div className="bg-slate-800 p-4 rounded-xl flex justify-between items-center">
+            <span className="text-slate-400">Financial Score</span>
+            <span className={`text-2xl font-bold ${isPass ? 'text-emerald-400' : 'text-red-400'}`}>{Math.round(result.score)}/100</span>
+          </div>
+          
+          <div className="bg-slate-800 p-4 rounded-xl text-left max-h-40 overflow-y-auto custom-scrollbar">
+            <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Performance Report</h4>
+            <ul className="space-y-2 text-sm text-slate-300">
+              {result.feedback.map((f: string, i: number) => (
+                <li key={i} className="flex items-start gap-2">
+                   <span className="mt-1 block w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" /> 
+                   <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          {!isPass ? (
+             <button onClick={onRetry} className="flex-1 py-4 rounded-xl font-bold bg-white text-slate-900 hover:bg-slate-200 flex items-center justify-center gap-2 cursor-pointer">
+               <RefreshCcw size={18} /> Retry Level
+             </button>
+          ) : (
+            <button onClick={onNext} className="flex-1 py-4 rounded-xl font-bold bg-emerald-500 text-white hover:bg-emerald-400 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20">
+               {isMaxLevel ? 'Finish Game' : 'Next Level'} <ArrowRight size={18} />
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ================= COMPONENT: TIMELINE (COMPACT) =================
 
 const LevelTimeline = ({ currentLevel, maxReached, onSelectLevel }: any) => {
   const levels = Array.from({ length: 15 }, (_, i) => i);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to center
   useEffect(() => {
     if (scrollRef.current) {
         const activeNode = scrollRef.current.children[currentLevel] as HTMLElement;
@@ -242,114 +470,63 @@ const LevelTimeline = ({ currentLevel, maxReached, onSelectLevel }: any) => {
   }, [currentLevel]);
 
   return (
-    <div className="w-full bg-slate-900 border-b border-slate-800 py-4 px-2 mb-6 shadow-xl sticky top-0 z-30">
+    <div className="tour-timeline w-full bg-[#0B1120] border-b border-slate-800/60 py-4 px-2 mb-6 shadow-xl sticky top-0 z-30">
       <div 
         ref={scrollRef}
-        className="flex items-center gap-4 overflow-x-auto px-4 scrollbar-hide snap-x no-scrollbar"
+        className="flex items-center gap-8 overflow-x-auto px-10 pb-4 pt-4 scrollbar-hide snap-x no-scrollbar relative"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
+        <div className="absolute top-[50%] left-0 w-full h-0.5 bg-slate-800 -z-10 translate-y-[-50%]" />
+
         {levels.map((lvl, index) => {
           const isLocked = lvl > maxReached;
           const isActive = lvl === currentLevel;
-          const isPast = lvl < currentLevel;
+          const isCompleted = lvl < currentLevel;
 
           return (
             <motion.div
               key={lvl}
-              layout // Helps with smooth layout shifts
               onClick={() => !isLocked && onSelectLevel(lvl)}
-              className={`
-                 relative flex-shrink-0 snap-center flex flex-col items-center gap-2 cursor-pointer group min-w-[60px]
-              `}
+              className={`relative flex-shrink-0 snap-center flex flex-col items-center gap-2 cursor-pointer group min-w-[50px]`}
             >
-              <div className="relative flex items-center justify-center">
-                 {/* Connection Line Behind */}
-                 {index !== 0 && (
-                    <div className={`absolute right-[50%] top-1/2 -translate-y-1/2 w-10 h-1 z-0 ${lvl <= maxReached ? 'bg-emerald-500/50' : 'bg-slate-800'}`} />
-                 )}
-                 
-                 {/* Circle Node */}
-                 <div className={`
-                    relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300
-                    ${isActive 
-                        ? 'bg-emerald-500 text-white border-emerald-300 scale-110 shadow-[0_0_20px_rgba(16,185,129,0.6)]' 
-                        : isLocked 
-                            ? 'bg-slate-800 text-slate-600 border-slate-700' 
-                            : 'bg-slate-900 text-emerald-500 border-emerald-500 hover:bg-emerald-500/10'
-                    }
-                 `}>
-                    {isLocked ? <Lock size={14} /> : (isActive ? <Star size={16} fill="currentColor" /> : lvl + 1)}
-                 </div>
-              </div>
+              {isCompleted && index < levels.length - 1 && (
+                  <div className="absolute top-[50%] left-[50%] w-[calc(100%+2rem)] h-0.5 bg-emerald-500 -z-0 origin-left translate-y-[-50%]" />
+              )}
 
-              {/* Level Label (Only visible for active or hovered) */}
-              <span className={`text-[10px] font-bold uppercase transition-all ${isActive ? 'text-emerald-400 opacity-100' : 'text-slate-500 opacity-0 group-hover:opacity-100'}`}>
-                {lvl === 14 ? 'Final' : `Lvl ${lvl + 1}`}
-              </span>
+              <div className="relative">
+                 {isActive && (
+                    <motion.div
+                        layoutId="avatar-walker"
+                        className="absolute -top-10 left-1/2 -translate-x-1/2 z-30 pointer-events-none"
+                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    >
+                        <div className="bg-white p-1 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.4)] border-2 border-emerald-500">
+                             <User size={14} className="text-emerald-600 fill-emerald-100" />
+                        </div>
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rotate-45 absolute -bottom-0.5 left-1/2 -translate-x-1/2" />
+                    </motion.div>
+                 )}
+
+                 <motion.div
+                    whileHover={!isLocked ? { scale: 1.15 } : {}}
+                    className={`
+                        relative z-10 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black border-2 shadow-lg transition-all duration-300
+                        ${isActive 
+                            ? 'bg-emerald-500 text-white border-white scale-110 shadow-[0_5px_20px_rgba(16,185,129,0.4)]' 
+                            : isCompleted
+                                ? 'bg-slate-900 text-emerald-500 border-emerald-500/50'
+                                : 'bg-slate-900/50 text-slate-600 border-slate-700'
+                        }
+                    `}
+                 >
+                    {isLocked ? <Lock size={14} /> : (isCompleted ? <CheckCircle2 size={16} /> : lvl + 1)}
+                 </motion.div>
+              </div>
             </motion.div>
           );
         })}
       </div>
     </div>
-  );
-};
-
-// ================= RESULT MODAL =================
-
-const ResultModal = ({ result, onNext, onRetry, isMaxLevel }: any) => {
-  const isPass = result.score >= 60 && result.balance >= 0;
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-    >
-      <motion.div 
-        initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-        className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl p-8 shadow-2xl relative overflow-hidden"
-      >
-        <div className={`absolute top-0 left-0 w-full h-2 ${isPass ? 'bg-emerald-500' : 'bg-red-500'}`} />
-        
-        <div className="text-center mb-6">
-          <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 ${isPass ? 'bg-emerald-500/20 text-emerald-500' : 'bg-red-500/20 text-red-500'}`}>
-            {isPass ? <CheckCircle2 size={40} /> : <AlertTriangle size={40} />}
-          </div>
-          <h2 className="text-3xl font-black text-white mb-2">{isPass ? 'Level Passed!' : 'Budget Failed'}</h2>
-          <p className="text-slate-400">{isPass ? 'Good job managing your funds.' : 'Review your mistakes and try again.'}</p>
-        </div>
-
-        <div className="space-y-4 mb-8">
-          <div className="bg-slate-800 p-4 rounded-xl flex justify-between items-center">
-            <span className="text-slate-400">Score</span>
-            <span className={`text-2xl font-bold ${isPass ? 'text-emerald-400' : 'text-red-400'}`}>{Math.round(result.score)}/100</span>
-          </div>
-          
-          <div className="bg-slate-800 p-4 rounded-xl text-left max-h-40 overflow-y-auto custom-scrollbar">
-            <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Feedback</h4>
-            <ul className="space-y-2 text-sm text-slate-300">
-              {result.feedback.map((f: string, i: number) => (
-                <li key={i} className="flex items-start gap-2">
-                   <span className="mt-1 block w-1.5 h-1.5 rounded-full bg-slate-500" /> {f}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          {!isPass && (
-             <button onClick={onRetry} className="flex-1 py-4 rounded-xl font-bold bg-white text-slate-900 hover:bg-slate-200 flex items-center justify-center gap-2">
-               <RefreshCcw size={18} /> Retry
-             </button>
-          )}
-          {isPass && (
-            <button onClick={onNext} className="flex-1 py-4 rounded-xl font-bold bg-emerald-500 text-white hover:bg-emerald-400 flex items-center justify-center gap-2">
-               {isMaxLevel ? 'Finish Game' : 'Next Level'} <ArrowRight size={18} />
-            </button>
-          )}
-        </div>
-      </motion.div>
-    </motion.div>
   );
 };
 
@@ -361,10 +538,11 @@ export default function FinancialSimulationGame() {
   const [income, setIncome] = useState(2000);
   const [allocations, setAllocations] = useState<Record<string, number>>({});
   
-  // Game States: playing -> chest -> result
   const [gameState, setGameState] = useState<'playing' | 'chest' | 'result'>('playing');
   const [lastResult, setLastResult] = useState<any>(null);
-  const [savingsError, setSavingsError] = useState(false); // To trigger shake animation
+  const [savingsError, setSavingsError] = useState(false);
+  
+  const [runTour, setRunTour] = useState(true);
 
   const stage = useMemo(() => getStageConfig(level), [level]);
 
@@ -388,12 +566,11 @@ export default function FinancialSimulationGame() {
   const remaining = income - totalFixed - totalAllocated;
 
   const handleSliderChange = (category: string, value: number) => {
+    // FIX: Fallback to 0 to prevent undefined errors
     const currentVal = allocations[category] || 0;
     const minRequired = stage.constraints?.[category]?.min || 0;
     
-    // Reset savings error if user starts saving
     if(category === 'savings' && value > 0) setSavingsError(false);
-
     if (value < minRequired) return;
 
     const diff = value - currentVal;
@@ -412,17 +589,23 @@ export default function FinancialSimulationGame() {
     setGameState('playing');
   };
 
+  const handleResetGame = () => {
+    if (confirm("Are you sure you want to reset your progress?")) {
+      setLevel(0);
+      setMaxReached(0);
+      setGameState('playing');
+      setRunTour(true);
+    }
+  };
+
   const handleFinishClick = () => {
-    // 1. MANDATORY SAVINGS CHECK
     const savingsAmount = allocations['savings'] || 0;
     if (savingsAmount <= 0) {
         setSavingsError(true);
-        // Reset animation after it plays
         setTimeout(() => setSavingsError(false), 500);
         return;
     }
 
-    // 2. Prepare Results but don't show yet (Show Chest first)
     const randomEvent = stage.events[Math.floor(Math.random() * stage.events.length)];
     const finalBalance = remaining + randomEvent.amount;
     
@@ -440,6 +623,7 @@ export default function FinancialSimulationGame() {
 
     if (stage.constraints) {
       Object.entries(stage.constraints).forEach(([cat, limit]) => {
+          // FIX: Fallback to 0 check
           if ((allocations[cat] || 0) < limit.min) {
               score -= 30;
               feedback.push(`Failed constraint: spent too little on ${cat}.`);
@@ -461,13 +645,29 @@ export default function FinancialSimulationGame() {
       event: randomEvent
     });
 
-    // 3. TRIGGER CHEST ANIMATION
     setGameState('chest');
+  };
+
+  const handleTourCallback = (data: CallBackProps) => {
+    const { status } = data;
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
+      setRunTour(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans pb-20">
       
+      <Joyride
+        steps={TOUR_STEPS}
+        run={runTour}
+        continuous
+        showProgress
+        showSkipButton
+        styles={TOUR_STYLES}
+        callback={handleTourCallback}
+      />
+
       <LevelTimeline 
         currentLevel={level} 
         maxReached={maxReached} 
@@ -494,9 +694,20 @@ export default function FinancialSimulationGame() {
               <p className="text-slate-400 text-sm max-w-md leading-relaxed">{stage.description}</p>
            </div>
            
-           <div className="text-right bg-slate-900 p-4 rounded-2xl border border-slate-800">
-              <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Monthly Income</p>
-              <p className="text-3xl font-black text-white tracking-tight">₹{income.toLocaleString()}</p>
+           <div className="flex gap-3 items-center">
+              <button 
+                onClick={handleResetGame}
+                className="flex items-center gap-2 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 font-bold text-sm hover:text-red-400 hover:border-red-500/30 transition-colors"
+                title="Reset Game"
+              >
+                <RotateCcw size={18} />
+                <span>Reset Levels</span>
+              </button>
+              
+              <div className="tour-income text-right bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Monthly Income</p>
+                <p className="text-3xl font-black text-white tracking-tight">₹{income.toLocaleString()}</p>
+              </div>
            </div>
         </header>
 
@@ -506,7 +717,7 @@ export default function FinancialSimulationGame() {
             <div className="space-y-6">
                
                {Object.keys(stage.fixedExpenses).length > 0 && (
-                 <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+                 <div className="tour-fixed bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
                     <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 flex items-center gap-2">
                        <Lock size={14} /> Fixed Auto-Debits
                     </h3>
@@ -521,7 +732,7 @@ export default function FinancialSimulationGame() {
                  </div>
                )}
 
-               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+               <div className="tour-sliders bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl" />
                   
                   <h3 className="text-xs font-bold text-slate-500 uppercase mb-6 flex items-center gap-2 relative z-10">
@@ -532,9 +743,8 @@ export default function FinancialSimulationGame() {
                     {stage.categories.map((cat) => {
                       const constraint = stage.constraints?.[cat];
                       const minVal = constraint?.min || 0;
+                      // FIX: Added '|| 0' fallback to prevent undefined crash
                       const currentVal = allocations[cat] || 0;
-                      
-                      // Highlight savings slider if there is an error
                       const isError = cat === 'savings' && savingsError;
 
                       return (
@@ -552,6 +762,7 @@ export default function FinancialSimulationGame() {
                                 )}
                             </div>
                             <span className={`${currentVal === minVal && constraint ? 'text-red-400' : 'text-emerald-400'} font-bold`}>
+                                {/* FIX: toLocaleString() now safe because currentVal has fallback */}
                                 ₹{currentVal.toLocaleString()}
                             </span>
                           </div>
@@ -587,7 +798,7 @@ export default function FinancialSimulationGame() {
             {/* RIGHT: DASHBOARD */}
             <div className="space-y-6">
                
-               <div className={`p-8 rounded-[2rem] border transition-colors relative overflow-hidden ${remaining < 0 ? 'bg-red-950/30 border-red-500/50' : 'bg-slate-900 border-slate-700'}`}>
+               <div className={`tour-dashboard p-8 rounded-[2rem] border transition-colors relative overflow-hidden ${remaining < 0 ? 'bg-red-950/30 border-red-500/50' : 'bg-slate-900 border-slate-700'}`}>
                   <div className="relative z-10">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-slate-400 font-medium">Disposable Remaining</span>
@@ -629,17 +840,17 @@ export default function FinancialSimulationGame() {
                   </ul>
                </div>
 
-               {/* FINISH BUTTON - FIX: CHANGED TRANSITION TYPE TO FIX SPRING ERROR */}
+               {/* FINISH BUTTON - FIX: Removed 'spring' type to fix multi-frame error */}
                <motion.button
+                  className={`tour-finish w-full py-5 rounded-2xl font-black text-xl shadow-lg flex items-center justify-center gap-2 transition-all 
+                    ${savingsError 
+                        ? 'bg-red-500 text-white' 
+                        : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:brightness-110'
+                    } disabled:opacity-50 disabled:grayscale cursor-pointer`}
                   onClick={handleFinishClick}
                   disabled={remaining < 0}
                   animate={savingsError ? { x: [-10, 10, -10, 10, 0] } : {}}
                   transition={{ duration: 0.4 }} 
-                  className={`w-full py-5 rounded-2xl font-black text-xl shadow-lg flex items-center justify-center gap-2 transition-all 
-                    ${savingsError 
-                        ? 'bg-red-500 text-white' 
-                        : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:brightness-110'
-                    } disabled:opacity-50 disabled:grayscale`}
                >
                   {savingsError ? "Save at least ₹1 !" : <>Finish Month <ChevronRight /></>}
                </motion.button>
@@ -648,13 +859,20 @@ export default function FinancialSimulationGame() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {gameState === 'chest' && (
-             <ChestModal onOpen={() => setGameState('result')} />
+      <AnimatePresence mode="wait">
+        {/* CHEST MODAL */}
+        {gameState === 'chest' && lastResult && (
+             <ChestModal 
+                key="chest-modal"
+                eventData={lastResult.event} 
+                onComplete={() => setGameState('result')} 
+             />
         )}
         
+        {/* RESULT MODAL */}
         {gameState === 'result' && lastResult && (
           <ResultModal 
+            key="result-modal"
             result={lastResult} 
             onNext={() => handleLevelComplete(true)}
             onRetry={() => handleLevelComplete(false)} 
