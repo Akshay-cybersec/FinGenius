@@ -2,7 +2,6 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-<<<<<<< HEAD
 import { 
   TrendingUp, 
   DollarSign, 
@@ -14,9 +13,6 @@ import {
   Home // Added Home icon
 } from "lucide-react";
 import Link from "next/link";
-=======
-import { TrendingUp, DollarSign, Award, PlayCircle, MoreHorizontal } from "lucide-react";
->>>>>>> ac7476b1038dbabfaa32815f9dc8daabf20b3f78
 
 export default function DashboardPage() {
   return (
