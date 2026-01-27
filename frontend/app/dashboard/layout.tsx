@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <div className="lg:pl-72 flex flex-col min-h-screen">
         <Navbar isDark={isDark} toggleTheme={() => setIsDark(!isDark)} />
-        <main className="flex-1 p-8 overflow-x-hidden">
+        <main className="flex-1 p-2 overflow-x-hidden">
           {children}
         </main>
       </div>
