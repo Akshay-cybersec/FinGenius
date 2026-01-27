@@ -233,6 +233,27 @@ const InvestmentSimulator = () => {
     return asset && (asset.type === 'Mutual Funds' || asset.type === 'Fixed Deposits');
   });
 
+  const updateUserXP = async (moduleId: string, xpAmount: number) => {
+    try {
+      const token = await getToken();
+      await fetch("http://localhost:8000/learning/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          module_id: moduleId,
+          percentage: 100,
+          xp_earned: xpAmount
+        })
+      });
+      await fetchUser();
+    } catch (error) {
+      console.error("Failed to update XP", error);
+    }
+  };
+
   const fetchMarket = async () => {
     try {
       const res = await fetch('http://localhost:8000/market');
@@ -331,6 +352,8 @@ const InvestmentSimulator = () => {
 
       if (runTour && tourIndex === 5) {
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+        updateUserXP('tutorial_trade', 50);
+        toast.success("First Trade Bonus: +50 XP!");
         setTourIndex(6);
       }
 
@@ -434,6 +457,7 @@ const InvestmentSimulator = () => {
         if (!learningCompleted.includes(currentModule.id)) {
           setLearningCompleted(prev => [...prev, currentModule.id]);
           confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+          updateUserXP(currentModule.id, 100);
           toast.success(`You mastered ${currentModule.title}! +100 XP`);
         }
 
