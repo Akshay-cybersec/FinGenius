@@ -35,7 +35,6 @@ export default function DashboardPage() {
       className="max-w-6xl mx-auto space-y-8 pb-12 transition-colors duration-500"
       style={{ color: isDark ? '#ffffff' : '#0f172a' }}
     >
-      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div 
@@ -68,7 +67,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content Column */}
         <div className="lg:col-span-2 space-y-8">
           
           {/* Net Worth Card */}
@@ -88,7 +86,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Learning Section */}
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-2xl font-bold transition-colors duration-500" style={{ color: isDark ? '#ffffff' : '#1A2B56' }}>Continuous Growth</h3>
@@ -130,7 +127,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Sidebar Column */}
         <div className="space-y-8">
           <div 
             className="rounded-[2rem] p-8 border shadow-sm transition-colors duration-500"
