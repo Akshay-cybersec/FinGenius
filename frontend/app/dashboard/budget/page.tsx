@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Joyride, { CallBackProps, STATUS, Step, Styles } from 'react-joyride';
 import { 
   User, GraduationCap, Briefcase, Home, TrendingUp, 
   AlertTriangle, CheckCircle2, Lock, Unlock, ArrowRight, 
@@ -136,6 +137,78 @@ const LIFE_STAGES: LifeStage[] = [
 
 const getStageConfig = (level: number): LifeStage => {
   return LIFE_STAGES.find(s => level >= s.levels[0] && (s.levels.length > 2 ? level <= s.levels[s.levels.length - 1] : true)) || LIFE_STAGES[0];
+};
+
+// ================= JOYRIDE STYLES & STEPS =================
+
+const TOUR_STEPS: Step[] = [
+  {
+    target: 'body',
+    placement: 'center',
+    content: (
+      <div className="text-center">
+        <h3 className="font-bold text-lg mb-2">Welcome to Budget Simulator! 🎓</h3>
+        <p>Your goal is to survive the month, save money, and level up from a Teenager to a Wealth Builder.</p>
+      </div>
+    ),
+    disableBeacon: true,
+  },
+  {
+    target: '.tour-timeline',
+    content: 'This is your Life Journey. As you pass levels, you will unlock new life stages like College and First Job.',
+  },
+  {
+    target: '.tour-income',
+    content: 'This is your Monthly Income. It changes based on your life stage.',
+  },
+  {
+    target: '.tour-fixed',
+    content: 'These are Fixed Expenses (like Rent). They are auto-deducted. You cannot change these.',
+  },
+  {
+    target: '.tour-sliders',
+    content: 'This is where you play! Use the sliders to allocate your remaining budget. Watch out for mandatory minimums (locks)!',
+  },
+  {
+    target: '.tour-dashboard',
+    content: 'Keep an eye on this! Make sure you have enough "Disposable Remaining" for emergencies.',
+  },
+  {
+    target: '.tour-finish',
+    content: 'Once you are happy with your budget, click here to end the month and see if you survived!',
+  },
+];
+
+// FIX: Changed type to Partial<Styles> to fix the "missing properties" error
+const TOUR_STYLES: Partial<Styles> = {
+  options: {
+    arrowColor: '#1e293b', 
+    backgroundColor: '#1e293b',
+    overlayColor: 'rgba(0, 0, 0, 0.85)',
+    primaryColor: '#10b981', 
+    textColor: '#fff',
+    width: 400,
+    zIndex: 1000,
+  },
+  tooltip: {
+    borderRadius: '16px',
+    fontSize: '14px',
+    padding: '20px', 
+  },
+  buttonNext: {
+    backgroundColor: '#10b981',
+    borderRadius: '8px',
+    color: '#fff',
+    fontWeight: 'bold',
+    outline: 'none',
+  },
+  buttonBack: {
+    color: '#94a3b8',
+    marginRight: 10,
+  },
+  buttonSkip: {
+    color: '#94a3b8',
+  }
 };
 
 // ================= COMPONENT: CHEST SURPRISE REVEAL =================
@@ -397,7 +470,7 @@ const LevelTimeline = ({ currentLevel, maxReached, onSelectLevel }: any) => {
   }, [currentLevel]);
 
   return (
-    <div className="w-full bg-[#0B1120] border-b border-slate-800/60 py-4 px-2 mb-6 shadow-xl sticky top-0 z-30">
+    <div className="tour-timeline w-full bg-[#0B1120] border-b border-slate-800/60 py-4 px-2 mb-6 shadow-xl sticky top-0 z-30">
       <div 
         ref={scrollRef}
         className="flex items-center gap-8 overflow-x-auto px-10 pb-4 pt-4 scrollbar-hide snap-x no-scrollbar relative"
@@ -468,6 +541,8 @@ export default function FinancialSimulationGame() {
   const [gameState, setGameState] = useState<'playing' | 'chest' | 'result'>('playing');
   const [lastResult, setLastResult] = useState<any>(null);
   const [savingsError, setSavingsError] = useState(false);
+  
+  const [runTour, setRunTour] = useState(true);
 
   const stage = useMemo(() => getStageConfig(level), [level]);
 
@@ -491,6 +566,7 @@ export default function FinancialSimulationGame() {
   const remaining = income - totalFixed - totalAllocated;
 
   const handleSliderChange = (category: string, value: number) => {
+    // FIX: Fallback to 0 to prevent undefined errors
     const currentVal = allocations[category] || 0;
     const minRequired = stage.constraints?.[category]?.min || 0;
     
@@ -518,6 +594,7 @@ export default function FinancialSimulationGame() {
       setLevel(0);
       setMaxReached(0);
       setGameState('playing');
+      setRunTour(true);
     }
   };
 
@@ -546,6 +623,7 @@ export default function FinancialSimulationGame() {
 
     if (stage.constraints) {
       Object.entries(stage.constraints).forEach(([cat, limit]) => {
+          // FIX: Fallback to 0 check
           if ((allocations[cat] || 0) < limit.min) {
               score -= 30;
               feedback.push(`Failed constraint: spent too little on ${cat}.`);
@@ -570,9 +648,26 @@ export default function FinancialSimulationGame() {
     setGameState('chest');
   };
 
+  const handleTourCallback = (data: CallBackProps) => {
+    const { status } = data;
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
+      setRunTour(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans pb-20">
       
+      <Joyride
+        steps={TOUR_STEPS}
+        run={runTour}
+        continuous
+        showProgress
+        showSkipButton
+        styles={TOUR_STYLES}
+        callback={handleTourCallback}
+      />
+
       <LevelTimeline 
         currentLevel={level} 
         maxReached={maxReached} 
@@ -608,21 +703,21 @@ export default function FinancialSimulationGame() {
                 <RotateCcw size={18} />
                 <span>Reset Levels</span>
               </button>
-              <div className="text-right bg-slate-900 p-4 rounded-2xl border border-slate-800">
+              
+              <div className="tour-income text-right bg-slate-900 p-4 rounded-2xl border border-slate-800">
                 <p className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-1">Monthly Income</p>
                 <p className="text-3xl font-black text-white tracking-tight">₹{income.toLocaleString()}</p>
               </div>
            </div>
         </header>
 
-        {/* ... (Existing Grid Layout - Controls & Dashboard) ... */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
             {/* LEFT: CONTROLS */}
             <div className="space-y-6">
                
                {Object.keys(stage.fixedExpenses).length > 0 && (
-                 <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+                 <div className="tour-fixed bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
                     <h3 className="text-xs font-bold text-slate-500 uppercase mb-4 flex items-center gap-2">
                        <Lock size={14} /> Fixed Auto-Debits
                     </h3>
@@ -637,7 +732,7 @@ export default function FinancialSimulationGame() {
                  </div>
                )}
 
-               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+               <div className="tour-sliders bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl" />
                   
                   <h3 className="text-xs font-bold text-slate-500 uppercase mb-6 flex items-center gap-2 relative z-10">
@@ -648,6 +743,7 @@ export default function FinancialSimulationGame() {
                     {stage.categories.map((cat) => {
                       const constraint = stage.constraints?.[cat];
                       const minVal = constraint?.min || 0;
+                      // FIX: Added '|| 0' fallback to prevent undefined crash
                       const currentVal = allocations[cat] || 0;
                       const isError = cat === 'savings' && savingsError;
 
@@ -666,6 +762,7 @@ export default function FinancialSimulationGame() {
                                 )}
                             </div>
                             <span className={`${currentVal === minVal && constraint ? 'text-red-400' : 'text-emerald-400'} font-bold`}>
+                                {/* FIX: toLocaleString() now safe because currentVal has fallback */}
                                 ₹{currentVal.toLocaleString()}
                             </span>
                           </div>
@@ -701,7 +798,7 @@ export default function FinancialSimulationGame() {
             {/* RIGHT: DASHBOARD */}
             <div className="space-y-6">
                
-               <div className={`p-8 rounded-[2rem] border transition-colors relative overflow-hidden ${remaining < 0 ? 'bg-red-950/30 border-red-500/50' : 'bg-slate-900 border-slate-700'}`}>
+               <div className={`tour-dashboard p-8 rounded-[2rem] border transition-colors relative overflow-hidden ${remaining < 0 ? 'bg-red-950/30 border-red-500/50' : 'bg-slate-900 border-slate-700'}`}>
                   <div className="relative z-10">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-slate-400 font-medium">Disposable Remaining</span>
@@ -743,17 +840,17 @@ export default function FinancialSimulationGame() {
                   </ul>
                </div>
 
-               {/* FINISH BUTTON */}
+               {/* FINISH BUTTON - FIX: Removed 'spring' type to fix multi-frame error */}
                <motion.button
-                  onClick={handleFinishClick}
-                  disabled={remaining < 0}
-                  animate={savingsError ? { x: [-10, 10, -10, 10, 0] } : {}}
-                  transition={{ duration: 0.4 }} 
-                  className={`w-full py-5 rounded-2xl font-black text-xl shadow-lg flex items-center justify-center gap-2 transition-all 
+                  className={`tour-finish w-full py-5 rounded-2xl font-black text-xl shadow-lg flex items-center justify-center gap-2 transition-all 
                     ${savingsError 
                         ? 'bg-red-500 text-white' 
                         : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:brightness-110'
                     } disabled:opacity-50 disabled:grayscale cursor-pointer`}
+                  onClick={handleFinishClick}
+                  disabled={remaining < 0}
+                  animate={savingsError ? { x: [-10, 10, -10, 10, 0] } : {}}
+                  transition={{ duration: 0.4 }} 
                >
                   {savingsError ? "Save at least ₹1 !" : <>Finish Month <ChevronRight /></>}
                </motion.button>
@@ -763,14 +860,16 @@ export default function FinancialSimulationGame() {
       </div>
 
       <AnimatePresence mode="wait">
+        {/* CHEST MODAL */}
         {gameState === 'chest' && lastResult && (
              <ChestModal 
                 key="chest-modal"
                 eventData={lastResult.event} 
-                onComplete={() => setGameState('result')} // Explicit transition
+                onComplete={() => setGameState('result')} 
              />
         )}
         
+        {/* RESULT MODAL */}
         {gameState === 'result' && lastResult && (
           <ResultModal 
             key="result-modal"
