@@ -1,381 +1,290 @@
 "use client";
-
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from "react";
 import { 
-  CheckCircle2, Lock, Play, 
-  ChevronRight, Star, Trophy, X, 
-  HeartPulse, PieChart, ShieldCheck, CreditCard, Scale, TrendingUp, Clock, ArrowRightCircle, Zap
-} from 'lucide-react';
+  Home, 
+  Gamepad2, 
+  PiggyBank, 
+  ArrowRight, 
+  XCircle, 
+  CheckCircle2, 
+  Info,
+  RotateCcw
+} from "lucide-react";
+import confetti from "canvas-confetti";
 
-// ================= TYPES =================
+// --- Data: Real World Expenses ---
+type Category = 'needs' | 'wants' | 'savings';
 
-type Difficulty = 'Beginner' | 'Intermediate' | 'Advanced';
-type Status = 'locked' | 'active' | 'completed';
-
-interface Lesson {
+interface ExpenseItem {
   id: string;
-  title: string;
-  description: string;
-  difficulty: Difficulty;
-  duration: string;
-  xp: number;
-  status: Status;
-  icon: any; 
+  name: string;
+  cost: number;
+  category: Category;
+  explanation: string; // The "Logic" explanation
 }
 
-// ================= DATA: 7 CHAPTERS =================
-
-const LEARNING_MODULES: Lesson[] = [
-  // --- BEGINNER ---
-  {
-    id: '1',
-    title: 'Money Mindset',
-    description: 'Understand needs vs. wants and the psychology of spending.',
-    difficulty: 'Beginner',
-    duration: '3 min read',
-    xp: 100,
-    status: 'completed',
-    icon:  HeartPulse
-  },
-  {
-    id: '2',
-    title: 'The 50/30/20 Rule',
-    description: 'The golden rule of budgeting for beginners.',
-    difficulty: 'Beginner',
-    duration: '5 min video',
-    xp: 150,
-    status: 'active', // Current User Position
-    icon: PieChart
-  },
-  {
-    id: '3',
-    title: 'Emergency Funds',
-    description: 'Why you need a safety net and how to build one.',
-    difficulty: 'Beginner',
-    duration: '4 min read',
-    xp: 150,
-    status: 'locked',
-    icon: ShieldCheck
-  },
-  // --- INTERMEDIATE ---
-  {
-    id: '4',
-    title: 'Credit Scores',
-    description: 'How credit works and how to boost your score.',
-    difficulty: 'Intermediate',
-    duration: '6 min read',
-    xp: 300,
-    status: 'locked',
-    icon: CreditCard
-  },
-  {
-    id: '5',
-    title: 'Good vs. Bad Debt',
-    description: 'Leveraging loans vs. drowning in interest.',
-    difficulty: 'Intermediate',
-    duration: '8 min video',
-    xp: 350,
-    status: 'locked',
-    icon: Scale
-  },
-  // --- ADVANCED ---
-  {
-    id: '6',
-    title: 'Stock Market Basics',
-    description: 'Intro to ETFs, Stocks, and Bonds.',
-    difficulty: 'Advanced',
-    duration: '10 min read',
-    xp: 500,
-    status: 'locked',
-    icon: TrendingUp
-  },
-  {
-    id: '7',
-    title: 'Retirement Planning',
-    description: 'The power of compound interest over time.',
-    difficulty: 'Advanced',
-    duration: '12 min video',
-    xp: 1000,
-    status: 'locked',
-    icon: Trophy
-  }
+const EXPENSE_DECK: ExpenseItem[] = [
+  { id: '1', name: 'Apartment Rent', cost: 1500, category: 'needs', explanation: "Shelter is your #1 survival need. It always comes first." },
+  { id: '2', name: 'Weekly Groceries', cost: 400, category: 'needs', explanation: "You need to eat to survive. Basic groceries are a non-negotiable Need." },
+  { id: '3', name: 'Netflix & Spotify', cost: 50, category: 'wants', explanation: "Entertainment is great for mental health, but strictly speaking, it's a Want." },
+  { id: '4', name: 'Emergency Fund', cost: 500, category: 'savings', explanation: "This isn't spending; it's security. Paying your future self is Savings." },
+  { id: '5', name: 'Electricity Bill', cost: 150, category: 'needs', explanation: "Utilities keep your home running. Definitely a Need." },
+  { id: '6', name: 'Weekend Pizza', cost: 100, category: 'wants', explanation: "Food is a need, but *dining out* is a luxury. Classify as a Want." },
+  { id: '7', name: 'Stock Market', cost: 500, category: 'savings', explanation: "Investing grows your wealth. This belongs in the Savings bucket." },
+  { id: '8', name: 'New Sneakers', cost: 150, category: 'wants', explanation: "Unless you have no shoes, brand new kicks are a Want." },
+  { id: '9', name: 'Car Insurance', cost: 100, category: 'needs', explanation: "Legally required to drive? Then it's a Need." },
+  { id: '10', name: 'Video Games', cost: 60, category: 'wants', explanation: "Pure entertainment. A fun Want!" },
+  { id: '11', name: 'Health Insurance', cost: 200, category: 'needs', explanation: "Protecting your health and finances from disaster is a Need." },
+  { id: '12', name: 'Vacation Fund', cost: 300, category: 'wants', explanation: "Saving for a trip? Even though you save it, the end goal is luxury. It's a Want." }, 
+  // Note: Vacation is tricky, often debated, but usually fits "Wants" or "Short term savings for wants"
 ];
 
-// ================= HELPER FUNCTIONS =================
+const TOTAL_BUDGET = 5000; // Sum of all costs roughly matches this for the game balance
 
-const getGradient = (difficulty: Difficulty) => {
-  switch (difficulty) {
-    case 'Beginner': return 'from-blue-600 to-cyan-500';
-    case 'Intermediate': return 'from-violet-600 to-purple-500';
-    case 'Advanced': return 'from-orange-500 to-red-500';
-    default: return 'from-slate-700 to-slate-500';
-  }
-};
+export default function BudgetArchitect() {
+  // --- State ---
+  const [deck, setDeck] = useState<ExpenseItem[]>(EXPENSE_DECK);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [towers, setTowers] = useState({ needs: 0, wants: 0, savings: 0 }); // Track $ amounts
+  const [feedback, setFeedback] = useState<{ msg: string; type: 'neutral' | 'success' | 'error' }>({ 
+    msg: "Welcome, Architect! Sort the expenses to build your budget.", 
+    type: 'neutral' 
+  });
+  const [history, setHistory] = useState<ExpenseItem[]>([]);
+  const [isComplete, setIsComplete] = useState(false);
 
-// ================= COMPONENT: LESSON MODAL =================
+  // Targets
+  const TARGETS = {
+    needs: TOTAL_BUDGET * 0.50, // $2500
+    wants: TOTAL_BUDGET * 0.30, // $1500
+    savings: TOTAL_BUDGET * 0.20 // $1000
+  };
 
-const LessonModal = ({ lesson, onClose, onComplete }: { lesson: Lesson, onClose: () => void, onComplete: () => void }) => {
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4"
-    >
-      <motion.div 
-        initial={{ y: 50, scale: 0.95 }} animate={{ y: 0, scale: 1 }}
-        className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[85vh] relative"
-      >
-        {/* Glow Effect */}
-        <div className={`absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${getGradient(lesson.difficulty)}`} />
+  const currentCard = deck[currentCardIndex];
 
-        <div className={`h-40 bg-gradient-to-br ${getGradient(lesson.difficulty)} relative p-8 flex items-end opacity-90`}>
-           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay" />
-           <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white transition-colors backdrop-blur-sm">
-              <X size={20} />
-           </button>
-           <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <span className="px-3 py-1 rounded-full bg-black/40 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-md border border-white/10">
-                    {lesson.difficulty}
-                </span>
-                <span className="flex items-center gap-1 text-white/80 text-xs font-bold">
-                    <Clock size={12} /> {lesson.duration}
-                </span>
-              </div>
-              <h2 className="text-4xl font-black text-white drop-shadow-md">{lesson.title}</h2>
-           </div>
-        </div>
+  // --- Logic ---
+  const handleSort = (selectedCategory: Category) => {
+    if (!currentCard) return;
 
-        <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-slate-900">
-           <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-800">
-              <div className="flex items-center gap-2 text-yellow-400 font-bold bg-yellow-400/10 px-4 py-2 rounded-xl border border-yellow-400/20">
-                  <Trophy size={18} /> 
-                  <span>Reward: {lesson.xp} XP</span>
-              </div>
-              <div className="text-slate-500 text-sm font-medium">Lesson ID: #{lesson.id}</div>
-           </div>
-
-           <div className="prose prose-invert max-w-none">
-              <p className="text-lg text-slate-300 leading-relaxed mb-8">{lesson.description}</p>
-              
-              <div className="group relative aspect-video bg-slate-950 rounded-2xl flex items-center justify-center border border-slate-800 overflow-hidden mb-8 cursor-pointer hover:border-emerald-500/50 transition-colors">
-                 <div className="absolute inset-0 bg-emerald-500/5 group-hover:bg-emerald-500/10 transition-colors" />
-                 <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-slate-900 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform">
-                    <Play size={24} fill="currentColor" className="ml-1" />
-                 </div>
-              </div>
-
-              <h3 className="text-white font-bold text-xl mb-4">Key Takeaways</h3>
-              <ul className="space-y-3 text-slate-400">
-                 <li className="flex items-start gap-3">
-                    <CheckCircle2 size={18} className="text-emerald-500 mt-1 shrink-0" />
-                    <span>Understanding the core principles of the topic.</span>
-                 </li>
-                 <li className="flex items-start gap-3">
-                    <CheckCircle2 size={18} className="text-emerald-500 mt-1 shrink-0" />
-                    <span>Real-world applications and examples.</span>
-                 </li>
-                 <li className="flex items-start gap-3">
-                    <CheckCircle2 size={18} className="text-emerald-500 mt-1 shrink-0" />
-                    <span>Actionable steps you can take today.</span>
-                 </li>
-              </ul>
-           </div>
-        </div>
-
-        <div className="p-6 border-t border-slate-800 bg-slate-950">
-           <button 
-             onClick={onComplete}
-             className="w-full py-4 rounded-xl font-bold text-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transform active:scale-95"
-           >
-             Complete & Claim XP <ArrowRightCircle size={20} />
-           </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-// ================= MAIN PAGE COMPONENT =================
-
-export default function LearningVideosPage() {
-  const [modules, setModules] = useState(LEARNING_MODULES);
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to active lesson
-  useEffect(() => {
-    const activeIndex = modules.findIndex(m => m.status === 'active');
-    if (scrollRef.current && activeIndex !== -1) {
-        scrollRef.current.scrollTo({ left: activeIndex * 320 - 100, behavior: 'smooth' });
-    }
-  }, [modules]);
-
-  const handleLessonComplete = () => {
-    if (!selectedLesson) return;
-    const currentIndex = modules.findIndex(m => m.id === selectedLesson.id);
-    const newModules = [...modules];
-    
-    // Complete current
-    newModules[currentIndex].status = 'completed';
-    
-    // Unlock next
-    if (currentIndex + 1 < newModules.length) {
-       newModules[currentIndex + 1].status = 'active';
+    // 1. Check Logic: Is the category correct?
+    if (selectedCategory !== currentCard.category) {
+      setFeedback({ 
+        msg: `❌ Incorrect! ${currentCard.name} is actually a ${currentCard.category.toUpperCase()}. logic: ${currentCard.explanation}`, 
+        type: 'error' 
+      });
+      return; // Stop them from proceeding until they get it right
     }
 
-    setModules(newModules);
-    setSelectedLesson(null);
+    // 2. Check Balance: Does it fit in the budget?
+    const newTotal = towers[selectedCategory] + currentCard.cost;
+    /* In a harder version, you could block them here. For learning, we let them overfill then warn them. */
+    
+    // 3. Success Move
+    setTowers(prev => ({ ...prev, [selectedCategory]: newTotal }));
+    setHistory(prev => [currentCard, ...prev]);
+    
+    setFeedback({ 
+      msg: `✅ Correct! ${currentCard.explanation}`, 
+      type: 'success' 
+    });
+
+    // 4. Advance Deck
+    if (currentCardIndex < deck.length - 1) {
+      setCurrentCardIndex(prev => prev + 1);
+    } else {
+      finishGame();
+    }
+  };
+
+  const finishGame = () => {
+    setIsComplete(true);
+    confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+    setFeedback({ msg: "🎉 Analysis Complete! Let's review your financial structure.", type: 'success' });
+  };
+
+  const resetGame = () => {
+    setTowers({ needs: 0, wants: 0, savings: 0 });
+    setCurrentCardIndex(0);
+    setHistory([]);
+    setIsComplete(false);
+    setFeedback({ msg: "Let's try again. Focus on the category definitions.", type: 'neutral' });
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans py-12 px-6">
+    <div className="w-full max-w-5xl mx-auto bg-slate-900 text-slate-100 rounded-3xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col md:flex-row min-h-[600px]">
       
-      {/* HEADER */}
-      <div className="max-w-4xl mx-auto mb-16 text-center">
-         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6">
-            <Zap size={14} className="fill-blue-400" /> Knowledge Base
-         </div>
-         <h1 className="text-5xl font-black text-white mb-6 tracking-tight drop-shadow-lg">
-            Financial <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Mastery Path</span>
-         </h1>
-         <p className="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
-            Level up your real-world money skills. Complete modules to earn XP and unlock advanced investment strategies.
-         </p>
-      </div>
+      {/* --- LEFT PANEL: The Sorting Station --- */}
+      <div className="w-full md:w-5/12 bg-slate-800 p-8 flex flex-col relative border-r border-slate-700">
+        
+        {/* Mentor Message Bubble */}
+        <div className={`mb-6 p-4 rounded-xl text-sm leading-relaxed border transition-all duration-300 ${
+          feedback.type === 'error' ? 'bg-red-500/10 border-red-500/50 text-red-200' :
+          feedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-200' :
+          'bg-slate-700 border-slate-600 text-slate-300'
+        }`}>
+          <div className="flex gap-3">
+            <Info className="flex-shrink-0 w-5 h-5 mt-0.5" />
+            <p>{feedback.msg}</p>
+          </div>
+        </div>
 
-      {/* HORIZONTAL ROADMAP */}
-      <div className="relative w-full overflow-hidden">
-         
-         {/* Background Ambient Glow */}
-         <div className="absolute top-1/2 left-0 w-full h-64 -translate-y-1/2 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
-
-         <div 
-            ref={scrollRef}
-            className="flex items-start gap-0 overflow-x-auto pb-24 pt-12 px-10 scrollbar-hide snap-x no-scrollbar"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-         >
-            {modules.map((lesson, index) => {
-               const isLocked = lesson.status === 'locked';
-               const isCompleted = lesson.status === 'completed';
-               const isActive = lesson.status === 'active';
-               const isLast = index === modules.length - 1;
-               
-               return (
-                 <div key={lesson.id} className="flex flex-col items-center relative flex-shrink-0 snap-center group" style={{ width: '320px' }}>
-                    
-                    {/* --- CONNECTING LINE (Behind) --- */}
-                    {!isLast && (
-                       <div className="absolute top-[40px] left-[50%] w-full h-1 z-0">
-                          {/* Base Track */}
-                          <div className="absolute inset-0 bg-slate-800 rounded-full" />
-                          
-                          {/* Animated Progress Beam */}
-                          {(isCompleted) && (
-                             <motion.div 
-                                initial={{ width: "0%" }}
-                                animate={{ width: "100%" }}
-                                transition={{ duration: 0.8, ease: "easeInOut" }}
-                                className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)] rounded-full origin-left"
-                             />
-                          )}
-                       </div>
-                    )}
-
-                    {/* --- NODE ICON --- */}
-                    <motion.div 
-                        whileHover={!isLocked ? { scale: 1.1, rotate: 5 } : {}}
-                        whileTap={!isLocked ? { scale: 0.9 } : {}}
-                        onClick={() => !isLocked && setSelectedLesson(lesson)}
-                        className={`
-                           relative w-24 h-24 rounded-3xl flex items-center justify-center shadow-2xl transition-all duration-500 cursor-pointer z-10 border-4
-                           ${isCompleted 
-                              ? 'bg-slate-900 border-emerald-500 text-emerald-400 shadow-emerald-500/30' 
-                              : isActive 
-                                 ? 'bg-gradient-to-br from-blue-600 to-indigo-600 border-white text-white shadow-blue-600/50'
-                                 : 'bg-slate-900 border-slate-800 text-slate-600 grayscale opacity-80'
-                           }
-                        `}
-                    >
-                        {isLocked ? <Lock size={28} /> : <lesson.icon size={36} />}
-                        
-                        {/* Active Pulse Ring */}
-                        {isActive && (
-                           <>
-                             <span className="absolute -inset-3 rounded-3xl border-2 border-dashed border-blue-400/40 animate-[spin_10s_linear_infinite]" />
-                             <span className="absolute -inset-3 rounded-3xl border-2 border-blue-400/20 animate-ping" />
-                           </>
-                        )}
-
-                        {/* Completed Checkmark Badge */}
-                        {isCompleted && (
-                           <div className="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 rounded-full p-1 border-2 border-slate-900">
-                              <CheckCircle2 size={14} strokeWidth={4} />
-                           </div>
-                        )}
-                    </motion.div>
-
-                    {/* --- LESSON CARD (Below) --- */}
-                    <motion.div 
-                       initial={{ opacity: 0, y: 20 }}
-                       whileInView={{ opacity: 1, y: 0 }}
-                       viewport={{ once: true }}
-                       onClick={() => !isLocked && setSelectedLesson(lesson)}
-                       className={`
-                          mt-8 w-64 p-5 rounded-2xl border transition-all duration-300 cursor-pointer relative group-hover:-translate-y-2
-                          ${isActive 
-                             ? 'bg-slate-800/80 border-blue-500/50 shadow-lg shadow-blue-500/10 backdrop-blur-sm' 
-                             : isCompleted 
-                                ? 'bg-slate-900/50 border-emerald-500/30' 
-                                : 'bg-slate-900/30 border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-700'
-                          }
-                       `}
-                    >
-                       {/* Difficulty Badge */}
-                       <div className="flex justify-between items-center mb-3">
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider
-                             ${isCompleted 
-                                ? 'bg-emerald-500/20 text-emerald-400' 
-                                : isActive
-                                   ? 'bg-blue-500/20 text-blue-400'
-                                   : 'bg-slate-700 text-slate-400'
-                             }
-                          `}>
-                             {lesson.difficulty}
-                          </span>
-                          {!isLocked && (
-                             <ChevronRight size={14} className={`transition-transform group-hover:translate-x-1 ${isActive ? 'text-blue-400' : 'text-slate-500'}`} />
-                          )}
-                       </div>
-                       
-                       <h3 className={`text-lg font-bold mb-2 leading-tight ${isLocked ? 'text-slate-500' : 'text-white group-hover:text-blue-200'}`}>
-                          {lesson.title}
-                       </h3>
-                       <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium">
-                          {lesson.description}
-                       </p>
-                    </motion.div>
-
-                 </div>
-               );
-            })}
+        {/* The Card Deck */}
+        {!isComplete ? (
+          <div className="flex-1 flex flex-col justify-center items-center relative perspective-1000">
+            {/* Card Stack Effect */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 bg-slate-700 rounded-2xl border border-slate-600 rotate-3 opacity-50 scale-95"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-80 bg-slate-700 rounded-2xl border border-slate-600 -rotate-2 opacity-70 scale-95"></div>
             
-            {/* End Spacer */}
-            <div className="w-10 shrink-0" />
-         </div>
+            {/* Active Card */}
+            <div className="relative w-72 h-96 bg-white text-slate-900 rounded-2xl shadow-2xl flex flex-col items-center justify-between p-6 transform transition-all hover:scale-105 duration-300 z-10">
+              <div className="w-full text-center">
+                <span className="inline-block px-3 py-1 bg-slate-100 rounded-full text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
+                  Expense #{currentCardIndex + 1}
+                </span>
+                <h3 className="text-2xl font-extrabold mb-2">{currentCard.name}</h3>
+                <div className="text-4xl font-mono font-bold text-indigo-600">${currentCard.cost}</div>
+              </div>
+              
+              <div className="w-full space-y-3">
+                <p className="text-center text-xs text-slate-400 font-medium uppercase">Where does this belong?</p>
+                <button 
+                  onClick={() => handleSort('needs')}
+                  className="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Home size={18} /> Needs
+                </button>
+                <button 
+                  onClick={() => handleSort('wants')}
+                  className="w-full py-3 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Gamepad2 size={18} /> Wants
+                </button>
+                <button 
+                  onClick={() => handleSort('savings')}
+                  className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors"
+                >
+                  <PiggyBank size={18} /> Savings
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col justify-center items-center text-center">
+            <CheckCircle2 className="w-20 h-20 text-emerald-500 mb-6" />
+            <h3 className="text-2xl font-bold mb-2">Simulation Complete</h3>
+            <p className="text-slate-400 mb-8">You've sorted all monthly expenses. Check your detailed breakdown on the right.</p>
+            <button 
+              onClick={resetGame}
+              className="px-8 py-3 bg-slate-700 hover:bg-slate-600 rounded-full font-bold flex items-center gap-2 transition-all"
+            >
+              <RotateCcw size={18} /> Restart
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* MODAL */}
-      <AnimatePresence>
-        {selectedLesson && (
-           <LessonModal 
-              lesson={selectedLesson} 
-              onClose={() => setSelectedLesson(null)} 
-              onComplete={handleLessonComplete}
-           />
-        )}
-      </AnimatePresence>
+      {/* --- RIGHT PANEL: The Towers (Visualization) --- */}
+      <div className="w-full md:w-7/12 bg-slate-900 p-8 flex flex-col relative">
+        <div className="mb-8 flex justify-between items-end">
+          <div>
+            <h2 className="text-2xl font-bold">Budget Structure</h2>
+            <p className="text-slate-400 text-sm">Monthly Income: <span className="text-white font-mono">$5,000</span></p>
+          </div>
+          <div className="text-right">
+             <p className="text-xs text-slate-500 uppercase font-bold">Spent / Total</p>
+             <p className="font-mono text-xl">
+               ${(towers.needs + towers.wants + towers.savings).toLocaleString()} / $5,000
+             </p>
+          </div>
+        </div>
 
+        {/* The 3 Columns */}
+        <div className="flex-1 grid grid-cols-3 gap-4 md:gap-6 h-full items-end pb-4">
+          <Tower 
+            label="Needs" 
+            percent={50} 
+            color="bg-blue-500" 
+            currentAmount={towers.needs} 
+            targetAmount={TARGETS.needs}
+            icon={<Home size={20} />}
+          />
+          <Tower 
+            label="Wants" 
+            percent={30} 
+            color="bg-purple-500" 
+            currentAmount={towers.wants} 
+            targetAmount={TARGETS.wants}
+            icon={<Gamepad2 size={20} />}
+          />
+          <Tower 
+            label="Savings" 
+            percent={20} 
+            color="bg-emerald-500" 
+            currentAmount={towers.savings} 
+            targetAmount={TARGETS.savings}
+            icon={<PiggyBank size={20} />}
+          />
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-slate-800">
+           <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Recent Transactions</h4>
+           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+             {history.slice(0, 5).map((item, idx) => (
+               <div key={idx} className="flex-shrink-0 px-3 py-2 bg-slate-800 rounded-lg border border-slate-700 text-xs flex items-center gap-2">
+                 <span className={`w-2 h-2 rounded-full ${
+                   item.category === 'needs' ? 'bg-blue-500' : 
+                   item.category === 'wants' ? 'bg-purple-500' : 'bg-emerald-500'
+                 }`} />
+                 <span className="font-medium">{item.name}</span>
+                 <span className="text-slate-400 font-mono">-${item.cost}</span>
+               </div>
+             ))}
+             {history.length === 0 && <span className="text-slate-600 text-xs italic">No expenses sorted yet...</span>}
+           </div>
+        </div>
+      </div>
     </div>
   );
 }
+
+const Tower = ({ label, percent, color, currentAmount, targetAmount, icon }: any) => {
+  const fillPercentage = Math.min((currentAmount / targetAmount) * 100, 100);
+  const isOverBudget = currentAmount > targetAmount;
+  const isComplete = currentAmount === targetAmount;
+
+  return (
+    <div className="flex flex-col items-center h-full justify-end group">
+      
+      <div className="mb-3 text-center opacity-60 group-hover:opacity-100 transition-opacity">
+        <p className={`text-lg font-mono font-bold ${isOverBudget ? 'text-red-400' : 'text-white'}`}>
+          ${currentAmount.toLocaleString()}
+        </p>
+        <p className="text-[10px] text-slate-400">Target: ${targetAmount.toLocaleString()}</p>
+      </div>
+
+      <div className="w-full max-w-[80px] h-[300px] bg-slate-800 rounded-t-2xl relative overflow-hidden border border-slate-700">
+        <div className="absolute top-0 left-0 right-0 border-b border-dashed border-white/20 z-10 h-full flex items-start justify-center pt-2">
+           <span className="text-[10px] text-slate-500 font-bold">{percent}% Limit</span>
+        </div>
+
+        <div 
+          className={`absolute bottom-0 left-0 right-0 transition-all duration-700 ease-out ${
+            isOverBudget ? 'bg-red-500' : color
+          } ${isComplete ? 'shadow-[0_0_20px_rgba(255,255,255,0.3)]' : ''}`}
+          style={{ height: `${fillPercentage}%` }}
+        >
+          <div className="absolute inset-0 w-full h-full opacity-20" 
+               style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '10px 10px' }}>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-2 p-2 rounded-xl bg-slate-800 border border-slate-700">
+        <div className={`p-1.5 rounded-lg ${color} text-white`}>
+          {icon}
+        </div>
+        <span className="text-sm font-bold text-slate-300 hidden md:inline">{label}</span>
+      </div>
+    </div>
+  );
+};
