@@ -28,7 +28,7 @@ interface Lesson {
 
 const LEARNING_MODULES: Lesson[] = [
   {
-    id: '1',
+    id: 'investing',
     title: 'Money Mindset',
     description: 'Understand needs vs. wants and the psychology of spending.',
     difficulty: 'Beginner',
@@ -38,7 +38,7 @@ const LEARNING_MODULES: Lesson[] = [
     icon:  HeartPulse
   },
   {
-    id: '2',
+    id: 'budgeting',
     title: 'The 50/30/20 Rule',
     description: 'The golden rule of budgeting for beginners.',
     difficulty: 'Beginner',
@@ -106,7 +106,8 @@ const LessonModal = ({ lesson, onClose, onComplete }: { lesson: Lesson, onClose:
 
   const handleVideoClick = () => {
     // Redirect to the videos page
-    router.push('/dashboard/learning/lectures');
+   //  router.push('/dashboard/learning/lectures');
+    router.push(`/dashboard/learning/lectures/${lesson.id}`);
   };
 
   return (

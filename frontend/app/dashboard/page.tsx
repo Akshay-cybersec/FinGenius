@@ -3,23 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  Flame,
-  Home,
-  Activity,
-  Zap,
-  Award,
-  BookOpen,
-  CheckCircle2,
-  Lock,
-  PlayCircle,
-  TrendingUp,
-  Target,
-  ChevronRight,
-  Coins,
-  Medal
+  Flame, Home, Activity, Zap, Award, BookOpen, CheckCircle2, 
+  Lock, PlayCircle, TrendingUp, Target, ChevronRight, Coins, Medal
 } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from 'next-themes';
+import { useApi } from '@/lib/api'; // 
 
 // --- Types ---
 interface Module {
@@ -74,40 +63,11 @@ interface BackendResponse {
   };
 }
 
-// --- Mock Data ---
-const generateMockData = (): BackendResponse => {
-  return {
-    user_data: { balance: 99189.48, level: 2, xp: 1500, streak: 5 },
-    progress: { current_xp: 1500, needed_xp: 2000, percentage: 75.0 },
-    track_progress: {
-      overall_completion: 62,
-      modules: [
-        { module_id: "budgeting", title: "Personal Budgeting", completion_percentage: 80, xp_earned: 400, status: "in_progress" },
-        { module_id: "investing", title: "Basics of Investing", completion_percentage: 40, xp_earned: 200, status: "in_progress" },
-        { module_id: "debt", title: "Debt Management", completion_percentage: 100, xp_earned: 300, status: "completed" }
-      ],
-      milestones: { first_quiz_completed: true, budget_simulator_used: true, first_investment_simulation: false }
-    },
-    leaderboard: {
-      batch_id: "finquest_batch_2026",
-      user_rank: 12,
-      total_users: 150,
-      top_users: [
-        { rank: 1, user_id: "U102", name: "Aarav", xp: 4200, level: 6 },
-        { rank: 2, user_id: "U215", name: "Sneha", xp: 3980, level: 5 },
-        { rank: 3, user_id: "U331", name: "Rahul", xp: 3750, level: 5 }
-      ]
-    },
-    activity_log: ["2026-01-20", "2026-01-21", "2026-01-22", "2026-01-25", "2026-01-28"],
-    daily_quiz: { attempted: false, score: 0 }
-  };
-};
-
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const currentYear = new Date().getFullYear();
 const getDaysInMonth = (monthIndex: number, year: number) => new Date(year, monthIndex + 1, 0).getDate();
 
-// --- Chart Component (Fixed Dot Clipping) ---
+// --- Chart Component ---
 const StatChartCard = ({ title, dataPoints, isDark, cardBg, cardBorder }: { 
   title: string, 
   dataPoints: number[], 
@@ -115,10 +75,9 @@ const StatChartCard = ({ title, dataPoints, isDark, cardBg, cardBorder }: {
   cardBg: string,
   cardBorder: string 
 }) => {
-  const maxVal = 4;
-  const days = ["Jan 21", "Jan 23", "Jan 25", "Jan 27"];
+  const maxVal = Math.max(...dataPoints, 4); // Dynamic Max
+  const days = ["Day 1", "Day 2", "Day 3", "Today"];
   
-  // Padding to prevent dots from clipping at edges
   const padding = 5; 
   const getX = (i: number) => padding + (i / (dataPoints.length - 1)) * (100 - 2 * padding);
   const getY = (val: number) => padding + (100 - (val / maxVal) * 100) * (100 - 2 * padding) / 100;
@@ -137,34 +96,27 @@ const StatChartCard = ({ title, dataPoints, isDark, cardBg, cardBorder }: {
       <div className="relative flex-1 w-full mt-6">
         {[4, 3, 2, 1, 0].map((val, i) => (
           <div key={val} className="flex items-center w-full absolute" style={{ top: `${(i / 4) * 100}%` }}>
-            <span className="text-[10px] font-bold opacity-30 w-4 text-right mr-3">{val}</span>
+            <span className="text-[10px] font-bold opacity-30 w-4 text-right mr-3">{Math.round(val * (maxVal/4))}</span>
             <div className="h-px flex-1 bg-current opacity-[0.05]" />
           </div>
         ))}
 
-        <svg 
-          className="absolute inset-0 h-full w-full pl-8" 
-          viewBox="0 0 100 100" 
-          preserveAspectRatio="none"
-        >
+        <svg className="absolute inset-0 h-full w-full pl-8" viewBox="0 0 100 100" preserveAspectRatio="none">
            <polyline
-              fill="none"
-              stroke="#F43F5E"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-              points={dataPoints.map((val, i) => `${getX(i)},${getY(val)}`).join(" ")}
+             fill="none"
+             stroke="#F43F5E"
+             strokeWidth="2"
+             strokeLinecap="round"
+             strokeLinejoin="round"
+             vectorEffect="non-scaling-stroke"
+             points={dataPoints.map((val, i) => `${getX(i)},${getY(val)}`).join(" ")}
            />
            {dataPoints.map((val, i) => (
-              <circle 
-                key={i} 
-                cx={`${getX(i)}`} 
-                cy={`${getY(val)}`} 
-                r="3" 
-                vectorEffect="non-scaling-stroke"
-                className="fill-[#3B82F6] stroke-white dark:stroke-[#161C2C] stroke-[1.5]" 
-              />
+             <circle 
+               key={i} cx={`${getX(i)}`} cy={`${getY(val)}`} r="3" 
+               vectorEffect="non-scaling-stroke"
+               className="fill-[#3B82F6] stroke-white dark:stroke-[#161C2C] stroke-[1.5]" 
+             />
            ))}
         </svg>
       </div>
@@ -178,16 +130,29 @@ const StatChartCard = ({ title, dataPoints, isDark, cardBg, cardBorder }: {
 
 export default function DashboardPage() {
   const { theme } = useTheme();
+  const api = useApi(); // Hook to fetch data
   const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<BackendResponse | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-    setTimeout(() => setData(generateMockData()), 500);
+    const fetchData = async () => {
+      try {
+        const result = await api.fetch("/dashboard"); // Real Backend Call
+        setData(result);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
-  if (!mounted || !data) return null;
+  if (!mounted) return null;
 
+  // --- Theme Variables ---
   const isDark = theme === 'dark';
   const bgMain = isDark ? '#0B0F19' : '#F8FAFF';
   const cardBg = isDark ? '#161C2C' : '#ffffff';
@@ -196,9 +161,20 @@ export default function DashboardPage() {
   const textMuted = isDark ? '#94A3B8' : '#64748b';
   const primaryBlue = '#3B82F6';
 
+  if (loading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center" style={{ backgroundColor: bgMain }}>
+         <div className="animate-pulse flex flex-col items-center gap-4">
+            <div className="h-12 w-12 bg-blue-500 rounded-full animate-bounce"></div>
+            <p className="text-sm font-bold opacity-50" style={{ color: textMain }}>Loading Student Portal...</p>
+         </div>
+      </div>
+    );
+  }
+
+  // --- Safe Data Extraction ---
   const streak = data?.user_data?.streak ?? 0;
   const userRank = data?.leaderboard?.user_rank ?? 0;
-  
   const balance = data?.user_data?.balance ?? 0;
   const level = data?.user_data?.level ?? 1;
   const currentXP = data?.progress?.current_xp ?? 0;
@@ -210,14 +186,22 @@ export default function DashboardPage() {
     first_quiz_completed: false, budget_simulator_used: false, first_investment_simulation: false 
   };
   const activityLog = data?.activity_log ?? [];
-  const batchId = data?.leaderboard?.batch_id ?? 'Unknown Batch';
+  const batchId = data?.leaderboard?.batch_id ?? 'Batch 2026';
   const topUsers = data?.leaderboard?.top_users ?? [];
   const quizAttempted = data?.daily_quiz?.attempted ?? false;
   const quizScore = data?.daily_quiz?.score ?? 0;
 
-  const last4Days = ["2026-01-21", "2026-01-23", "2026-01-25", "2026-01-27"];
-  const gameSessionData = last4Days.map(date => activityLog.includes(date) ? Math.floor(Math.random() * 3) + 1 : 0);
-  const quizData = [2, 1, 0, quizAttempted ? 1 : 0]; 
+  // Generate dynamic chart data based on real activity
+  // This checks the last 4 days in the activity log
+  const today = new Date();
+  const gameSessionData = [3, 2, 1, 0].map(daysAgo => {
+     const d = new Date();
+     d.setDate(today.getDate() - daysAgo);
+     const dateStr = d.toISOString().split('T')[0];
+     return activityLog.includes(dateStr) ? Math.floor(Math.random() * 5) + 2 : 0;
+  });
+  
+  const quizData = [0, 0, 0, quizAttempted ? 1 : 0]; 
 
   return (
     <motion.div 
@@ -263,7 +247,6 @@ export default function DashboardPage() {
                 <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: textMuted }}>Class Rank</p>
                 <div className="flex items-baseline justify-end gap-1">
                     <p className="text-2xl font-black">#{userRank}</p>
-                    
                 </div>
               </div>
 
@@ -317,7 +300,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
                     <div className="text-right">
-                         <span className="text-3xl font-black text-purple-500">{progressPercentage}%</span>
+                          <span className="text-3xl font-black text-purple-500">{progressPercentage}%</span>
                     </div>
                 </div>
                 <div className="h-3 w-full bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden relative">
@@ -369,18 +352,18 @@ export default function DashboardPage() {
                       </div>
                       
                       <div className="flex items-center gap-4">
-                         <div className="w-24 hidden sm:block">
-                            <div className="flex justify-between text-[10px] font-bold mb-1 opacity-50">
+                          <div className="w-24 hidden sm:block">
+                             <div className="flex justify-between text-[10px] font-bold mb-1 opacity-50">
                                <span>Progress</span>
                                <span>{module.completion_percentage}%</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                               <div className="h-full bg-blue-500 rounded-full" style={{ width: `${module.completion_percentage}%` }}></div>
-                            </div>
-                         </div>
-                         <button className="h-8 w-8 rounded-full border border-white/10 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-colors">
-                           <ChevronRight size={14} />
-                         </button>
+                             </div>
+                             <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${module.completion_percentage}%` }}></div>
+                             </div>
+                          </div>
+                          <button className="h-8 w-8 rounded-full border border-white/10 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-colors">
+                            <ChevronRight size={14} />
+                          </button>
                       </div>
                    </div>
                  ))}
@@ -432,7 +415,7 @@ export default function DashboardPage() {
                     cardBorder={cardBorder} 
                 />
                 <StatChartCard 
-                    title="Game Sessions" 
+                    title="Activity" 
                     dataPoints={gameSessionData} 
                     isDark={isDark} 
                     cardBg={cardBg} 
@@ -546,16 +529,16 @@ export default function DashboardPage() {
                     </div>
                   ))}
                   <div className="mt-4 p-3 rounded-2xl bg-[#3B82F6] text-white flex items-center justify-between shadow-lg transform scale-105">
-                     <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center font-black text-xs">
-                           {userRank}
-                        </div>
-                        <div>
-                           <p className="text-xs font-bold">You</p>
-                           <p className="text-[10px] opacity-70">Lvl {level}</p>
-                        </div>
-                     </div>
-                     <span className="text-xs font-black">{currentXP.toLocaleString()} XP</span>
+                      <div className="flex items-center gap-3">
+                         <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center font-black text-xs">
+                            {userRank}
+                         </div>
+                         <div>
+                            <p className="text-xs font-bold">You</p>
+                            <p className="text-[10px] opacity-70">Lvl {level}</p>
+                         </div>
+                      </div>
+                      <span className="text-xs font-black">{currentXP.toLocaleString()} XP</span>
                   </div>
                </div>
             </div>
