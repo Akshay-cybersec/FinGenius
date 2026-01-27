@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, DollarSign, Award, Clock, ArrowRight, PlayCircle, MoreHorizontal } from "lucide-react";
+import { TrendingUp, DollarSign, Award, PlayCircle, MoreHorizontal } from "lucide-react";
 
 export default function DashboardPage() {
   return (
