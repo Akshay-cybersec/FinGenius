@@ -16,6 +16,8 @@ interface Asset {
 }
 
 const InvestmentSimulator = () => {
+  const [buyQtyMap, setBuyQtyMap] = useState<{ [key: string]: number }>({});
+  const [sellQtyMap, setSellQtyMap] = useState<Record<string, number>>({});
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState('Stocks');
@@ -64,21 +66,31 @@ const InvestmentSimulator = () => {
   };
 
 
-  const buyAsset = async (asset: Asset) => {
+  const buyAsset = async (asset: Asset, qty: number) => {
+    const totalCost = asset.price * qty;
+
+    if (totalCost > balance) {
+      alert(`Not enough balance. Required: $${totalCost.toFixed(2)}, Available: $${balance.toFixed(2)}`);
+      return;
+    }
+
     const token = await getToken();
-    await fetch('http://localhost:8000/trade/buy', {
-      method: 'POST',
+    await fetch("http://localhost:8000/trade/buy", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({ ticker: asset.ticker, qty: 1 })
+      body: JSON.stringify({ ticker: asset.ticker, qty })
     });
+
     fetchUser();
     fetchPortfolio();
   };
 
-  const sellAsset = async (ticker: string) => {
+
+
+  const sellAsset = async (ticker: string, qty: number) => {
     const token = await getToken();
     await fetch("http://localhost:8000/trade/sell", {
       method: "POST",
@@ -86,11 +98,12 @@ const InvestmentSimulator = () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({ ticker, qty: 1 })
+      body: JSON.stringify({ ticker, qty })
     });
     fetchUser();
     fetchPortfolio();
   };
+
 
 
 
@@ -102,27 +115,53 @@ const InvestmentSimulator = () => {
 
 
   useEffect(() => {
-    fetchMarket();
-    fetchUser();
-    fetchPortfolio();
-  }, []);
+  const init = async () => {
+    await fetchMarket();
+    await fetchUser();
+    await fetchPortfolio();
+  };
+  init();
+}, []);
+
 
   useEffect(() => {
-    fetch('http://localhost:8000/market')
-      .then(res => res.json())
-      .then(setMarketAssets);
+    let ws: WebSocket;
+    let reconnectTimer: any;
 
-    const ws = new WebSocket('ws://localhost:8000/ws/market');
+    const connect = () => {
+      ws = new WebSocket("ws://localhost:8000/ws/market");
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setMarketAssets(data);
-      calculatePortfolioValue(portfolio);
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setMarketAssets(data);
+        setPortfolioValue(prev => {
+          let total = 0;
+          portfolio.forEach((item) => {
+            const asset = data.find((a: Asset) => a.ticker === item.ticker);
+            if (asset) total += asset.price * item.quantity;
+          });
+          return total;
+        });
+      };
+
+      ws.onclose = () => {
+        reconnectTimer = setTimeout(connect, 2000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
     };
 
+    connect();
 
-    return () => ws.close();
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
   }, []);
+
+
 
 
   const filteredAssets = marketAssets.filter(a => a.type === activeTab);
@@ -141,7 +180,6 @@ const InvestmentSimulator = () => {
   };
 
   return (
-    // ROOT: Added light mode background (slate-50) and text color switching
     <div className="flex h-full w-full bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 overflow-hidden font-sans p-6 gap-6 transition-colors duration-300">
 
       {/* LEFT COLUMN */}
@@ -153,7 +191,7 @@ const InvestmentSimulator = () => {
             Investment Market
           </h1>
 
-          {/* Tabs Container */}
+          {/* Tabs */}
           <div className="flex gap-2 p-1 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-700/50 w-fit shadow-sm">
             {['Stocks', 'Mutual Funds', 'ETFs', 'Fixed Deposits'].map((tab) => (
               <button
@@ -170,18 +208,17 @@ const InvestmentSimulator = () => {
           </div>
         </div>
 
-        {/* --- IMPROVED PORTFOLIO SECTION --- */}
-        {/* Only show if portfolio has items to save space, or keep empty state styling */}
+        {/* --- PORTFOLIO SECTION (Updated UI) --- */}
         <div className="flex-shrink-0 bg-white/60 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-2xl overflow-hidden shadow-md flex flex-col max-h-64">
           <div className="px-6 py-3 border-b border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/20 flex justify-between items-center sticky top-0 backdrop-blur-md z-10">
-             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                <Briefcase size={16} /> Your Portfolio
-             </h2>
-             <span className="text-xs font-mono text-slate-400 dark:text-slate-500">
-                {portfolio.length} Assets
-             </span>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+              <Briefcase size={16} /> Your Portfolio
+            </h2>
+            <span className="text-xs font-mono text-slate-400 dark:text-slate-500">
+              {portfolio.length} Assets
+            </span>
           </div>
-          
+
           <div className="overflow-y-auto custom-scrollbar">
             <table className="w-full text-left border-collapse">
               <thead className="bg-slate-100/80 dark:bg-slate-900/50 sticky top-0 z-10 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider backdrop-blur-sm">
@@ -191,55 +228,92 @@ const InvestmentSimulator = () => {
                   <th className="p-4 text-right">Avg. Price</th>
                   <th className="p-4 text-right">Current</th>
                   <th className="p-4 text-right">P/L</th>
-                  <th className="p-4 text-center">Action</th>
+                  <th className="p-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700/30 text-sm">
                 {portfolio.length === 0 ? (
-                    <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-400 dark:text-slate-500 italic">
-                            Your portfolio is empty. Start trading below!
-                        </td>
-                    </tr>
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-slate-400 dark:text-slate-500 italic">
+                      Your portfolio is empty. Start trading below!
+                    </td>
+                  </tr>
                 ) : (
-                    portfolio.map((item) => {
+                  portfolio.map((item) => {
                     const asset = marketAssets.find(a => a.ticker === item.ticker);
                     if (!asset) return null;
                     const pl = (asset.price - item.buy_price) * item.quantity;
                     const isProfit = pl >= 0;
+                    const sellInputValue = sellQtyMap[item.ticker] || '';
 
                     return (
-                        <tr key={item.ticker} className="group hover:bg-slate-100 dark:hover:bg-slate-700/20 transition-colors">
+                      <tr key={item.ticker} className="group hover:bg-slate-100 dark:hover:bg-slate-700/20 transition-colors">
+                        {/* Asset Name */}
                         <td className="p-4 font-medium text-slate-700 dark:text-slate-200">
-                            <span className="bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded text-xs mr-2 text-slate-600 dark:text-slate-300 font-bold">
-                                {item.ticker}
-                            </span>
-                            {asset.name}
+                          <span className="bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded text-xs mr-2 text-slate-600 dark:text-slate-300 font-bold">
+                            {item.ticker}
+                          </span>
+                          {asset.name}
                         </td>
+                        {/* Stats */}
                         <td className="p-4 text-right font-mono text-slate-600 dark:text-slate-300">{item.quantity}</td>
                         <td className="p-4 text-right font-mono text-slate-500 dark:text-slate-400">${item.buy_price.toFixed(2)}</td>
                         <td className="p-4 text-right font-mono font-medium text-slate-800 dark:text-slate-100">${asset.price.toFixed(2)}</td>
                         <td className={`p-4 text-right font-mono font-bold ${isProfit ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
-                            {isProfit ? '+' : ''}${pl.toFixed(2)}
+                          {isProfit ? '+' : ''}${pl.toFixed(2)}
                         </td>
-                        <td className="p-4 text-center">
+
+                        {/* Action Column - Fixed UI */}
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Input Group */}
+                            <div className="flex items-center bg-slate-200 dark:bg-slate-900/50 rounded-lg p-0.5 border border-slate-300 dark:border-slate-600/50">
+                              <input
+                                type="number"
+                                min="1"
+                                max={item.quantity}
+                                placeholder="Qty"
+                                value={sellInputValue}
+                                onChange={(e) => setSellQtyMap({ ...sellQtyMap, [item.ticker]: Number(e.target.value) })}
+                                className="w-16 bg-transparent px-2 py-1 text-xs text-center font-mono text-slate-800 dark:text-slate-200 focus:outline-none"
+                              />
+                              <button
+                                onClick={() => setSellQtyMap({ ...sellQtyMap, [item.ticker]: item.quantity })}
+                                className="px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-cyan-500 uppercase border-l border-slate-300 dark:border-slate-700"
+                              >
+                                Max
+                              </button>
+                            </div>
+
+                            {/* Sell Button */}
                             <button
-                            onClick={() => sellAsset(item.ticker)}
-                            className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                              onClick={() => {
+                                const qty = sellQtyMap[item.ticker] || 1;
+
+                                if (qty > item.quantity) {
+                                  alert(`You only have ${item.quantity} shares of ${item.ticker}`);
+                                  return;
+                                }
+
+                                sellAsset(item.ticker, qty);
+                                setSellQtyMap({ ...sellQtyMap, [item.ticker]: 0 });
+                              }}
+                              className="ml-2 px-3 py-1.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg shadow-sm shadow-red-500/20 transition-all active:scale-95"
                             >
-                            Sell Position
+                              Sell
                             </button>
+                          </div>
                         </td>
-                        </tr>
+                      </tr>
                     );
-                    })
+                  })
                 )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* --- MARKET TABLE (Existing but with Light Mode) --- */}
+        {/* --- MARKET TABLE --- */}
         <div className="flex-1 bg-white/60 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200 dark:border-slate-700/50 rounded-2xl overflow-hidden shadow-xl flex flex-col min-h-0">
           <div className="overflow-x-auto flex-1 custom-scrollbar">
             <table className="w-full text-left border-collapse">
@@ -274,8 +348,20 @@ const InvestmentSimulator = () => {
                       </div>
                     </td>
                     <td className="p-4">{renderRiskBadge(asset.risk)}</td>
-                    <td className="p-4 text-right">
-                      <button onClick={() => buyAsset(asset)} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-lg shadow-md shadow-cyan-500/20 transition-all active:scale-95">
+                    <td className="p-4 text-right flex gap-2 justify-end">
+                      <div className="flex items-center bg-slate-200 dark:bg-slate-700 rounded-lg p-0.5">
+                        <input
+                          type="number"
+                          min={1}
+                          value={buyQtyMap[asset.ticker] || 1}
+                          onChange={(e) => setBuyQtyMap(prev => ({ ...prev, [asset.ticker]: Number(e.target.value) }))}
+                          className="w-12 bg-transparent px-2 py-1 text-xs text-center font-mono text-slate-800 dark:text-slate-200 focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        onClick={() => buyAsset(asset, buyQtyMap[asset.ticker] || 1)}
+                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-lg shadow-md shadow-cyan-500/20 transition-all active:scale-95"
+                      >
                         Buy
                       </button>
                     </td>
@@ -302,9 +388,19 @@ const InvestmentSimulator = () => {
               <p className="text-xs text-slate-500 mb-1">Available Cash</p>
               <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">${balance.toFixed(2)}</p>
             </div>
+
+            {/* --- UPDATED TOTAL PROFIT COLOR LOGIC --- */}
             <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700/30">
               <p className="text-xs text-slate-500 mb-1">Total Profit</p>
-              <p className="text-lg font-semibold text-cyan-600 dark:text-cyan-400">${(portfolioValue - (100000 - balance)).toFixed(2)}</p>
+              {(() => {
+                const totalProfit = portfolioValue - (100000 - balance);
+                const isProfit = totalProfit >= 0;
+                return (
+                  <p className={`text-lg font-semibold ${isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+                    {isProfit ? '+' : ''}${totalProfit.toFixed(2)}
+                  </p>
+                );
+              })()}
             </div>
           </div>
 
@@ -352,7 +448,7 @@ const InvestmentSimulator = () => {
         </div>
 
       </div>
-    </div>
+    </div >
   );
 };
 
