@@ -1,93 +1,99 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Laptop } from 'lucide-react';
+import { Moon, Sun, Laptop, ChevronDown } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import Link from 'next/link';
-import { usePathname } from 'next/navigation'; // Added this
+import { usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 
-interface NavbarProps {
-  isDark: boolean;
-  toggleTheme: () => void;
-}
-
-export default function Navbar({ isDark, toggleTheme }: NavbarProps) {
+export default function Navbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const pathname = usePathname(); // Get current path
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Hide Navbar if the user is on any dashboard route
-  if (pathname?.startsWith('/dashboard')) {
-    return null;
-  }
+  if (pathname?.startsWith('/dashboard')) return null;
+  if (!mounted) return <div className="h-20" />;
 
-  const primaryBtnClass = `
-    bg-primary hover:bg-primary/90 text-primary-foreground 
-    px-4 lg:px-6 py-2.5 rounded-xl font-bold text-xs lg:text-sm 
-    shadow-[0_0_20px_rgba(99,54,250,0.3)] 
-    hover:shadow-[0_0_30px_rgba(99,54,250,0.5)]
-    transform active:scale-95 transition-all duration-300 
-    flex items-center justify-center whitespace-nowrap relative overflow-hidden group
-  `;
+  const isDark = theme === 'dark';
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-md bg-background/70 border-b border-border transition-colors duration-300">
-      <div className="w-full px-4 lg:px-12 h-20 flex items-center justify-between">
+    <nav 
+      className="sticky top-0 z-50 transition-all duration-500 border-b backdrop-blur-md"
+      style={{ 
+        backgroundColor: isDark ? '#1A2B56' : 'rgba(255, 255, 255, 0.8)',
+        borderColor: isDark ? 'rgba(30, 58, 138, 0.3)' : 'rgba(241, 245, 249, 1)'
+      }}
+    >
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
         
+        {/* Logo Section */}
         <div className="flex-shrink-0">
-          <Link href="/" className="flex items-center gap-4 group cursor-pointer">
-            <div className="relative w-9 h-9 lg:w-11 lg:h-11 bg-primary rounded-xl flex items-center justify-center transform group-hover:rotate-12 transition-all duration-300 shadow-lg shadow-primary/20">
-              <Laptop className="text-primary-foreground w-5 h-5 lg:w-6 lg:h-6" />
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-background animate-ping" />
-            </div>
-            <span className="text-xl lg:text-2xl font-black tracking-tight flex items-center">
-              <span className="text-foreground transition-colors duration-300">Fin</span>
-              <span className="bg-gradient-to-br from-[#6336FA] to-[#8B5CF6] bg-clip-text text-transparent filter drop-shadow-[0_0_1px_rgba(99,54,250,0.2)]">
-                Genius
-              </span>
+          <Link href="/" className="flex items-center gap-3 group">
+            <motion.div 
+              whileHover={{ rotate: 10, scale: 1.1 }}
+              className="w-10 h-10 bg-[#2D5BFF] rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20"
+            >
+              <Laptop className="text-white w-6 h-6" />
+            </motion.div>
+            <span className="text-xl font-black tracking-tighter flex items-center gap-1">
+              <span className={`uppercase ${isDark ? 'text-white' : 'text-slate-900'}`}>Fin</span>
+              <span className="text-[#2D5BFF] uppercase">Genius</span>
             </span>
           </Link>
         </div>
 
-        <div className="hidden xl:flex items-center gap-8 text-sm font-semibold text-muted-foreground">
-          {['Courses', 'Features', 'Pricing', 'Resources'].map((item) => (
-            <a key={item} href={`#${item.toLowerCase()}`} className="hover:text-primary transition-colors relative group">
-              {item}
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
-            </a>
+        {/* Navigation Links */}
+        <div className={`hidden xl:flex items-center gap-10 text-[15px] font-medium ${isDark ? 'text-blue-100/80' : 'text-slate-600'}`}>
+          {['Home', 'Courses', 'My Learning', 'Community'].map((name) => (
+            <Link 
+              key={name} 
+              href="/"
+              className={`relative py-1 transition-colors hover:text-[#2D5BFF] ${isDark && name === 'Home' ? 'text-white' : ''}`}
+            >
+              {name}
+              {name === 'Home' && (
+                <motion.span layoutId="nav-underline" className="absolute -bottom-[26px] left-0 w-full h-[3px] bg-[#2D5BFF] rounded-full" />
+              )}
+            </Link>
           ))}
         </div>
 
-        <div className="flex items-center gap-2 lg:gap-4">
+        {/* Right Actions */}
+        <div className="flex items-center gap-4 lg:gap-6">
           <button 
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2 rounded-full hover:bg-muted transition-colors border border-transparent hover:border-border"
+            onClick={() => setTheme(isDark ? 'light' : 'dark')}
+            className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-blue-800/50' : 'hover:bg-slate-100'}`}
           >
-            {!mounted ? <div className="w-5 h-5" /> : theme === 'dark' ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-foreground" />}
+            {isDark ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
           </button>
-          
-          <div className="hidden md:flex items-center gap-3">
+
+          <div className={`h-6 w-px hidden sm:block ${isDark ? 'bg-blue-800' : 'bg-slate-200'}`} />
+
+          <div className="flex items-center gap-4">
             <SignedOut>
               <SignInButton mode="modal">
-                <button className="text-sm font-bold text-foreground hover:text-primary transition-colors px-2">Login</button>
-              </SignInButton>
-              <SignInButton mode="modal">
-                <button className={primaryBtnClass}>
-                  <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                  <span className="relative z-10">Get Started</span>
+                <button className={`text-sm font-bold transition-colors ${isDark ? 'text-blue-100 hover:text-white' : 'text-slate-700 hover:text-[#2D5BFF]'}`}>
+                  Login
                 </button>
               </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <Link href="/dashboard" className={primaryBtnClass}>
-                 <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                 <span className="relative z-10">Dashboard</span>
+              <Link href="/dashboard" className="bg-[#2D5BFF] text-white px-6 py-2 rounded-full font-semibold text-sm shadow-md">
+                Dashboard
               </Link>
-              <UserButton afterSignOutUrl="/" />
+            </SignedOut>
+
+            <SignedIn>
+              <Link href="/dashboard" className={`hidden md:block text-sm font-bold transition-colors ${isDark ? 'text-blue-100 hover:text-white' : 'text-slate-700 hover:text-[#2D5BFF]'}`}>
+                 Dashboard
+              </Link>
+              <div className={`flex items-center gap-2 p-1 pr-3 rounded-full border transition-all ${isDark ? 'bg-blue-800/40 border-blue-700' : 'bg-slate-50 border-slate-200'}`}>
+                <UserButton afterSignOutUrl="/" />
+                <ChevronDown className={`w-4 h-4 ${isDark ? 'text-blue-300' : 'text-slate-400'}`} />
+              </div>
             </SignedIn>
           </div>
         </div>
