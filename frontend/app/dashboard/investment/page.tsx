@@ -144,6 +144,17 @@ const InvestmentSimulator = () => {
       disableBeacon: true,
     },
     {
+      target: '.tour-academy-btn', 
+      content: (
+        <div>
+          <p className="font-bold text-lg">🧠 Brain Power = Profit</p>
+          <p>Don't gamble! Use the <strong>Academy</strong> to learn strategies for FDs, Mutual Funds, and ETFs.</p>
+          <p className="mt-2 text-xs text-indigo-600 font-bold">Reward: +100 XP per module!</p>
+        </div>
+      ),
+      placement: 'bottom',
+    },
+    {
       target: '.tour-balance-card',
       content: '💰 The War Chest: You start with $100,000. Your mission is to make this number go UP.',
       placement: 'left',
@@ -554,7 +565,7 @@ const InvestmentSimulator = () => {
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl"></div>
 
             <h2 className="text-3xl font-extrabold bg-gradient-to-r from-cyan-600 to-indigo-600 dark:from-cyan-400 dark:to-indigo-400 bg-clip-text text-transparent mb-4">
-              Welcome to FinQuest!
+              Welcome to FinGenius!
             </h2>
             <p className="text-slate-600 dark:text-slate-300 mb-8 text-lg leading-relaxed">
               Your journey to financial freedom starts here. Learn how to trade stocks, build a portfolio, and manage risk—all with virtual money.
@@ -616,7 +627,7 @@ const InvestmentSimulator = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => { setIsLearningOpen(true); setActiveModuleIndex(0); setActiveCardIndex(0); }}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all text-sm font-bold"
+                className="tour-academy-btn flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all text-sm font-bold"
               >
                 <GraduationCap size={18} />
                 Academy
@@ -767,8 +778,8 @@ const InvestmentSimulator = () => {
                                 {isFD && <span className="text-[10px] text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded mt-1 inline-block">{asset.price}% Returns</span>}
                               </td>
                               <td className="p-4 text-slate-500">{asset.type}</td>
-                              <td className="p-4 text-right font-mono text-slate-600 dark:text-slate-400">${investVal.toLocaleString()}</td>
-                              <td className="p-4 text-right font-bold text-slate-800 dark:text-slate-100">${curVal.toLocaleString()}</td>
+                              <td className="p-4 text-right font-mono text-slate-600 dark:text-slate-400">${(investVal || 0).toLocaleString()}</td>
+                              <td className="p-4 text-right font-bold text-slate-800 dark:text-slate-100">${(curVal || 0).toLocaleString()}</td>
                               <td className="p-4 text-right">
                                 <button onClick={() => { if (confirm(isFD ? "Break FD?" : "Redeem all?")) sellAsset(item.ticker, item.quantity, asset.type); }} className={`px-3 py-1.5 text-xs font-semibold text-white rounded-lg shadow-sm transition-all active:scale-95 ${isFD ? 'bg-orange-500 hover:bg-orange-600' : 'bg-indigo-500 hover:bg-indigo-600'}`}>
                                   {isFD ? 'Break FD' : 'Redeem'}
@@ -899,18 +910,22 @@ const InvestmentSimulator = () => {
         <div className="tour-balance-card p-6 rounded-2xl bg-gradient-to-br from-white to-slate-100 dark:from-slate-800/80 dark:to-slate-900/80 border border-slate-200 dark:border-slate-700/50 backdrop-blur-xl shadow-2xl relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/10 dark:bg-cyan-500/20 rounded-full blur-3xl"></div>
           <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Portfolio Value</h3>
-          <div className="text-3xl font-bold text-slate-800 dark:text-white mb-4">${portfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <div className="text-3xl font-bold text-slate-800 dark:text-white mb-4">
+            ${(portfolioValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700/30">
               <p className="text-xs text-slate-500 mb-1">Cash Balance</p>
-              <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">${balance.toLocaleString()}</p>
+              <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                ${(balance || 0).toLocaleString()}
+              </p>
             </div>
             <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700/30">
               <p className="text-xs text-slate-500 mb-1">Total P/L</p>
               {(() => {
                 const totalProfit = portfolioValue + balance - 100000;
                 const isProfit = totalProfit >= 0;
-                return <p className={`text-lg font-semibold ${isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>{isProfit ? '+' : ''}${Math.abs(totalProfit).toLocaleString()}</p>;
+                return <p className={`text-lg font-semibold ${isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>{isProfit ? '+' : ''}${Math.abs(totalProfit || 0).toLocaleString()}</p>;
               })()}
             </div>
           </div>

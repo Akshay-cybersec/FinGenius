@@ -24,7 +24,7 @@ const menuItems = [
   { name: "Budget Simulator", icon: TrendingUp, href: "/dashboard/budget" },
   { name: "Investment Simulation", icon: PieChart, href: "/dashboard/investment" },
   { name: "Game", icon: Gamepad2, href: "/dashboard/game" },
-  { name: "Learning", icon: GraduationCap, href: "/dashboard/learning" },
+  { name: "Redeem Store", icon: GraduationCap, href: "/dashboard/Redeem" },
   { name: "LeaderBoard", icon: Trophy, href: "/dashboard/leaderboard" },
 ];
 
