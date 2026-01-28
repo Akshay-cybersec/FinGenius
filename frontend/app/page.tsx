@@ -5,12 +5,12 @@ import { motion } from 'framer-motion';
 import { 
   ChevronRight, Play, Star, BookOpen, Users, Clock, ArrowRight, 
   Rocket, Book, GraduationCap, Plus, Laptop, BrainCircuit, 
-  Gamepad2, Wallet, LineChart, Sparkles, CheckCircle2, Zap 
+  Gamepad2, Wallet, LineChart, Sparkles, CheckCircle2, Zap, Check 
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import Image from 'next/image'; 
-import { useTheme } from 'next-themes'; // Added this import
+import { useTheme } from 'next-themes'; 
 import heroImg from "@/assets/image.png"; 
 
 const FloatingShape = ({ icon: Icon, delay, x, y, size = 40, color = "text-blue-200" }: any) => (
@@ -46,6 +46,59 @@ const StatCard = ({ icon: Icon, title, subtitle, isDark }: any) => (
       <p className={`text-sm font-medium ${isDark ? 'text-blue-200/60' : 'text-slate-500'}`}>{subtitle}</p>
     </div>
   </div>
+);
+
+// --- New Pricing Card Component ---
+const PricingCard = ({ title, price, features, recommended, isDark }: any) => (
+  <motion.div 
+    whileHover={{ y: -10 }}
+    className={`relative p-8 rounded-[2.5rem] border transition-all duration-500 flex flex-col h-full ${recommended ? 'shadow-2xl shadow-blue-500/20 ring-2 ring-blue-500' : 'shadow-xl'}`}
+    style={{
+      backgroundColor: isDark ? 'rgba(30, 58, 138, 0.2)' : '#ffffff',
+      borderColor: isDark 
+        ? (recommended ? '#3b82f6' : 'rgba(59, 130, 246, 0.2)') 
+        : (recommended ? '#2563eb' : '#f1f5f9')
+    }}
+  >
+    {recommended && (
+      <div className="absolute -top-5 left-0 right-0 flex justify-center">
+        <span className="bg-[#2D5BFF] text-white px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest shadow-lg">
+          Most Popular
+        </span>
+      </div>
+    )}
+    
+    <div className="mb-8">
+      <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-blue-200' : 'text-slate-500'}`}>{title}</h3>
+      <div className="flex items-baseline gap-1">
+        <span className={`text-5xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{price}</span>
+        <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>/month</span>
+      </div>
+    </div>
+
+    <ul className="space-y-4 mb-8 flex-1">
+      {features.map((feature: string, idx: number) => (
+        <li key={idx} className="flex items-start gap-3">
+          <div className="mt-1 min-w-[20px]">
+            <CheckCircle2 size={20} className="text-[#2D5BFF]" />
+          </div>
+          <span className={`text-sm font-medium leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            {feature}
+          </span>
+        </li>
+      ))}
+    </ul>
+
+    <button 
+      className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${
+        recommended 
+          ? 'bg-gradient-to-r from-[#2D5BFF] to-[#6336FA] text-white shadow-lg hover:shadow-blue-500/40' 
+          : `border-2 hover:bg-blue-50 ${isDark ? 'border-blue-500/30 text-blue-200 hover:bg-blue-900/20' : 'border-slate-200 text-slate-600'}`
+      }`}
+    >
+      Choose {title}
+    </button>
+  </motion.div>
 );
 
 const features = [
@@ -130,18 +183,18 @@ export default function LMSLanding() {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
             <h1 
-  className="text-6xl md:text-[84px] font-black leading-[1.05] mb-8 tracking-tight transition-colors duration-500"
-  style={{ color: isDark ? '#ffffff' : '#1A2B56' }}
->
-  Turn Curiosity <br />
-  <span className="bg-gradient-to-r from-[#2D5BFF] via-[#6336FA] to-[#2D5BFF] bg-clip-text text-transparent">Into Mastery.</span>
-</h1>
-<p 
-  className="text-xl mb-12 max-w-lg font-medium leading-relaxed transition-colors duration-500"
-  style={{ color: isDark ? 'rgba(219, 234, 254, 0.7)' : 'rgba(71, 85, 105, 1)' }}
->
-  Escape the theory loop. Dive into a hands-on learning ecosystem where every lesson is a step toward your next big breakthrough.
-</p>
+              className="text-6xl md:text-[84px] font-black leading-[1.05] mb-8 tracking-tight transition-colors duration-500"
+              style={{ color: isDark ? '#ffffff' : '#1A2B56' }}
+            >
+              Turn Curiosity <br />
+              <span className="bg-gradient-to-r from-[#2D5BFF] via-[#6336FA] to-[#2D5BFF] bg-clip-text text-transparent">Into Mastery.</span>
+            </h1>
+            <p 
+              className="text-xl mb-12 max-w-lg font-medium leading-relaxed transition-colors duration-500"
+              style={{ color: isDark ? 'rgba(219, 234, 254, 0.7)' : 'rgba(71, 85, 105, 1)' }}
+            >
+              Escape the theory loop. Dive into a hands-on learning ecosystem where every lesson is a step toward your next big breakthrough.
+            </p>
             <div className="flex flex-col sm:flex-row gap-5">
               <button className="bg-gradient-to-r from-[#2D5BFF] to-[#1e45cc] hover:shadow-2xl hover:shadow-blue-500/40 text-white px-10 py-5 rounded-full font-bold text-lg flex items-center justify-center gap-2 transition-all transform hover:-translate-y-1">
                 Explore Courses <ChevronRight size={22} />
@@ -255,6 +308,74 @@ export default function LMSLanding() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* --- NEW PRICING & PLANNING SECTION --- */}
+      <section className="py-24 px-6 max-w-[1440px] mx-auto relative z-10">
+        <div className="text-center mb-20">
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest mb-4 border transition-colors duration-500"
+            style={{
+              backgroundColor: isDark ? 'rgba(30, 58, 138, 0.5)' : '#eff6ff',
+              color: isDark ? '#93c5fd' : '#2563eb',
+              borderColor: isDark ? 'rgba(29, 78, 216, 1)' : '#dbeafe'
+            }}
+          >
+            <Zap size={16} /> Flexible Plans
+          </motion.div>
+          <h2 className="text-5xl md:text-6xl font-black mb-6 tracking-tight transition-colors duration-500" style={{ color: isDark ? '#ffffff' : '#1A2B56' }}>
+            Choose Your <span className="text-[#2D5BFF]">Growth Plan</span>
+          </h2>
+          <p className={`text-xl max-w-2xl mx-auto font-medium transition-colors duration-500 ${isDark ? 'text-blue-100/60' : 'text-slate-500'}`}>
+             Start free and scale as you learn. No hidden fees, cancel anytime.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 px-4">
+           {/* Free Plan */}
+           <PricingCard 
+             title="Starter" 
+             price="₹0" 
+             isDark={isDark}
+             features={[
+               "Access to 5 free courses",
+               "Basic market simulator access",
+               "Community forum support",
+               "Mobile app access"
+             ]} 
+           />
+
+           {/* Pro Plan */}
+           <PricingCard 
+             title="Pro Scholar" 
+             price="₹500" 
+             recommended={true}
+             isDark={isDark}
+             features={[
+               "Unlimited course access",
+               "Real-time market data feed",
+               "1-on-1 Mentor sessions",
+               "Certification upon completion",
+               "Offline downloads"
+             ]} 
+           />
+
+           {/* Team Plan */}
+           <PricingCard 
+             title="Enterprise" 
+             price="₹1000" 
+             isDark={isDark}
+             features={[
+               "All Pro features included",
+               "Team management dashboard",
+               "Custom learning paths",
+               "Dedicated success manager",
+               "API Access for simulations"
+             ]} 
+           />
         </div>
       </section>
 

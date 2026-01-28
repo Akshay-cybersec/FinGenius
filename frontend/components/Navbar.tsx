@@ -49,7 +49,7 @@ export default function Navbar() {
 
         {/* Navigation Links */}
         <div className={`hidden xl:flex items-center gap-10 text-[15px] font-medium ${isDark ? 'text-blue-100/80' : 'text-slate-600'}`}>
-          {['Home', 'Courses', 'My Learning', 'Community'].map((name) => (
+          {['Home', 'prices and planing'].map((name) => (
             <Link 
               key={name} 
               href="/"
