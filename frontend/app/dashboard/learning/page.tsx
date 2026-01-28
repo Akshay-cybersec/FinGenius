@@ -1,11 +1,12 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation'; // <--- IMPORT ROUTER
+import { useRouter } from 'next/navigation';
 import { 
   BookOpen, CheckCircle2, Lock, Play, FileText, 
   ChevronRight, Star, Trophy, ArrowUpCircle, X, 
-  HeartPulse, PieChart, ShieldCheck, CreditCard, Scale, TrendingUp, Clock, ArrowRightCircle, Zap, ExternalLink
+  HeartPulse, PieChart, ShieldCheck, CreditCard, Scale, TrendingUp, Clock, ArrowRightCircle, Zap, ExternalLink,
+  Map, Lightbulb
 } from 'lucide-react';
 
 // ================= TYPES =================
@@ -17,11 +18,13 @@ interface Lesson {
   id: string;
   title: string;
   description: string;
+  content: string; 
   difficulty: Difficulty;
   duration: string;
   xp: number;
   status: Status;
   icon: any; 
+  diagramTag?: string; 
 }
 
 // ================= DATA =================
@@ -31,6 +34,13 @@ const LEARNING_MODULES: Lesson[] = [
     id: 'investing',
     title: 'Money Mindset',
     description: 'Understand needs vs. wants and the psychology of spending.',
+    content: `Before numbers, we must master psychology. We explore Maslow’s hierarchy applied to finance and how to distinguish essential survival costs from lifestyle inflation.
+
+    
+    
+    * **Needs:** Essentials for survival (Food, Shelter, Basic Clothing).
+    * **Wants:** Things that add comfort but aren't critical (Dining out, Designer clothes).
+    * **The Gap:** Financial freedom lies in maximizing the gap between income and needs.`,
     difficulty: 'Beginner',
     duration: '3 min read',
     xp: 100,
@@ -41,6 +51,16 @@ const LEARNING_MODULES: Lesson[] = [
     id: 'budgeting',
     title: 'The 50/30/20 Rule',
     description: 'The golden rule of budgeting for beginners.',
+    content: `A simple, effective way to manage your after-tax income. It splits your spending into three clear buckets to ensure balance.
+
+    
+
+[Image of 50/30/20 budgeting rule pie chart]
+
+
+    * **50% Needs:** Rent, groceries, utilities, minimum debt payments.
+    * **30% Wants:** Entertainment, dining out, hobbies.
+    * **20% Savings:** Emergency fund, retirement investing, extra debt payments.`,
     difficulty: 'Beginner',
     duration: '5 min video',
     xp: 150,
@@ -51,6 +71,13 @@ const LEARNING_MODULES: Lesson[] = [
     id: '3',
     title: 'Emergency Funds',
     description: 'Why you need a safety net and how to build one.',
+    content: `An emergency fund is a stash of money set aside to cover the financial surprises life throws your way. 
+
+    
+
+    * **Why?** To avoid high-interest debt when emergencies happen (car repair, medical bill).
+    * **How much?** Aim for 3-6 months of *essential* living expenses.
+    * **Where?** Keep it in a High-Yield Savings Account (HYSA) for easy access and interest.`,
     difficulty: 'Beginner',
     duration: '4 min read',
     xp: 150,
@@ -61,6 +88,13 @@ const LEARNING_MODULES: Lesson[] = [
     id: '4',
     title: 'Credit Scores',
     description: 'How credit works and how to boost your score.',
+    content: `Your credit score is a numerical representation of your creditworthiness. A higher score opens doors to lower interest rates on loans.
+
+    
+
+    * **Payment History (35%):** Pay on time, every time.
+    * **Utilization (30%):** Keep balances low relative to your limits.
+    * **Length of History (15%):** Keep old accounts open.`,
     difficulty: 'Intermediate',
     duration: '6 min read',
     xp: 300,
@@ -71,6 +105,12 @@ const LEARNING_MODULES: Lesson[] = [
     id: '5',
     title: 'Good vs. Bad Debt',
     description: 'Leveraging loans vs. drowning in interest.',
+    content: `Not all debt is created equal. Understanding the difference is key to building wealth.
+
+    
+
+    * **Good Debt:** Increases your net worth or has future value (Mortgage, Student Loans, Business Loans). usually has lower interest rates.
+    * **Bad Debt:** Depreciating assets or consumption (High-interest Credit Cards, Payday Loans).`,
     difficulty: 'Intermediate',
     duration: '8 min video',
     xp: 350,
@@ -81,6 +121,13 @@ const LEARNING_MODULES: Lesson[] = [
     id: '6',
     title: 'Stock Market Basics',
     description: 'Intro to ETFs, Stocks, and Bonds.',
+    content: `Investing is buying assets that grow in value.
+
+    
+
+    * **Stocks:** Ownership in a company. High potential return, higher risk.
+    * **Bonds:** Loaning money to a government or company. Lower risk, steady income.
+    * **ETFs:** A basket of stocks/bonds. Instant diversification. Great for beginners.`,
     difficulty: 'Advanced',
     duration: '10 min read',
     xp: 500,
@@ -91,6 +138,13 @@ const LEARNING_MODULES: Lesson[] = [
     id: '7',
     title: 'Retirement Planning',
     description: 'The power of compound interest over time.',
+    content: `Time is your biggest asset. Compound interest is interest on interest.
+
+    
+
+    * **Start Early:** Even small amounts grow significantly over decades.
+    * **Tax Advantage:** Utilize accounts like 401(k)s and IRAs.
+    * **Consistency:** Invest a fixed amount regularly (Dollar Cost Averaging).`,
     difficulty: 'Advanced',
     duration: '12 min video',
     xp: 1000,
@@ -102,11 +156,9 @@ const LEARNING_MODULES: Lesson[] = [
 // ================= COMPONENT: LESSON MODAL =================
 
 const LessonModal = ({ lesson, onClose, onComplete }: { lesson: Lesson, onClose: () => void, onComplete: () => void }) => {
-  const router = useRouter(); // <--- INITIALIZE ROUTER
+  const router = useRouter(); 
 
   const handleVideoClick = () => {
-    // Redirect to the videos page
-   //  router.push('/dashboard/learning/lectures');
     router.push(`/dashboard/learning/lectures/${lesson.id}`);
   };
 
@@ -149,8 +201,31 @@ const LessonModal = ({ lesson, onClose, onComplete }: { lesson: Lesson, onClose:
               <div className="text-slate-500 text-sm font-medium">Lesson ID: #{lesson.id}</div>
            </div>
 
-           <div className="prose prose-invert max-w-none">
-              <p className="text-lg text-slate-300 leading-relaxed mb-8">{lesson.description}</p>
+           <div className="prose prose-invert max-w-none text-slate-300">
+              <div className="whitespace-pre-wrap mb-8">
+                  {/* Basic parser to handle [Image] tags and bold text for this demo */}
+                  {lesson.content.split('\n').map((line, i) => {
+                      if (line.trim().startsWith('[Image')) {
+                          return (
+                              <div key={i} className="my-6 p-6 bg-slate-950 border border-dashed border-slate-700 rounded-xl text-center text-slate-500 italic">
+                                  <div className="flex justify-center mb-2"><Lightbulb size={24}/></div>
+                                  {line.replace('[', '').replace(']', '')}
+                              </div>
+                          )
+                      }
+                      // Simple bold parser
+                      const parts = line.split(/(\*\*.*?\*\*)/g);
+                      return (
+                        <p key={i} className="mb-2">
+                          {parts.map((part, j) => 
+                            part.startsWith('**') && part.endsWith('**') 
+                              ? <strong key={j} className="text-white">{part.slice(2, -2)}</strong> 
+                              : part
+                          )}
+                        </p>
+                      );
+                  })}
+              </div>
               
               {/* === CLICKABLE VIDEO CARD === */}
               <div 
