@@ -14,6 +14,7 @@ import {
 import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 import Joyride, { CallBackProps, STATUS, Step } from 'react-joyride';
+import { useRouter } from 'next/navigation';
 
 // --- Data: Real World Expenses ---
 type Category = 'needs' | 'wants' | 'savings';
@@ -43,7 +44,6 @@ const EXPENSE_DECK: ExpenseItem[] = [
 
 const TOTAL_BUDGET = 5000;
 
-// Joyride steps
 const joyrideSteps: Step[] = [
   {
     target: 'body',
@@ -78,6 +78,8 @@ const joyrideSteps: Step[] = [
 ];
 
 export default function BudgetArchitect() {
+  const router = useRouter();
+
   const [deck, setDeck] = useState<ExpenseItem[]>(EXPENSE_DECK);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [towers, setTowers] = useState({ needs: 0, wants: 0, savings: 0 });
@@ -104,13 +106,9 @@ export default function BudgetArchitect() {
     }
   }, []);
 
-  // FIX: Type casting 'status' to allow comparison
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status } = data;
-    const finishedStatus: string = STATUS.FINISHED;
-    const skippedStatus: string = STATUS.SKIPPED;
-
-    if ([finishedStatus, skippedStatus].includes(status)) {
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       setRunJoyride(false);
       localStorage.setItem('budgetArchitectTourShown', 'true');
     }
@@ -157,9 +155,14 @@ export default function BudgetArchitect() {
     setFeedback({ msg: "Let's try again. Focus on the category definitions.", type: 'neutral' });
   };
 
+  const handleNextLecture = () => {
+    // UPDATED: Navigates to your specific dashboard path
+    router.push('/dashboard/learning/lectures/3');
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto bg-gradient-to-br from-slate-900 to-slate-950 text-slate-100 rounded-[2rem] shadow-2xl border border-slate-800/50 overflow-hidden flex flex-col md:flex-row min-h-[700px] relative">
-
+      
       <Joyride
         steps={joyrideSteps}
         run={runJoyride}
@@ -180,25 +183,45 @@ export default function BudgetArchitect() {
             fontSize: '14px',
             borderRadius: '1rem',
           },
-          buttonNext: {
-            backgroundColor: '#3b82f6',
-            borderRadius: '0.5rem',
-            color: '#fff',
-            fontFamily: 'inherit',
-            fontWeight: 'bold',
-            outline: 'none',
-          },
-          buttonBack: {
-            color: '#64748b',
-            fontFamily: 'inherit',
-            marginRight: '10px',
-          },
-          buttonSkip: {
-            color: '#64748b',
-            fontFamily: 'inherit',
-          },
         }}
       />
+
+      {/* Completion Overlay */}
+      {isComplete && (
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          className="absolute inset-0 flex items-center justify-center bg-slate-950/80 backdrop-blur-md z-50 rounded-[2rem]"
+        >
+          <motion.div 
+            initial={{ scale: 0.8, y: 20 }} 
+            animate={{ scale: 1, y: 0 }} 
+            className="text-center p-10 bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl max-w-md mx-4"
+          >
+            <div className="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mb-6 mx-auto shadow-[0_0_40px_rgba(16,185,129,0.2)]">
+              <CheckCircle2 size={40} />
+            </div>
+            <h3 className="text-3xl font-black text-white mb-2">Master Architect!</h3>
+            <p className="text-slate-400 mb-8 font-medium">You've mastered the 50/30/20 rule. Your financial blueprint is ready.</p>
+            <div className="space-y-4">
+              <button
+                onClick={handleNextLecture}
+                className="w-full px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/25 group"
+              >
+                <span>Continue to Next Lecture</span>
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button 
+                onClick={resetGame} 
+                className="w-full px-8 py-4 bg-slate-800 text-slate-300 hover:text-white rounded-2xl font-bold flex items-center justify-center gap-3 transition-all border border-slate-700 hover:bg-slate-700"
+              >
+                <RotateCcw size={18} />
+                <span>Try Again</span>
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
 
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[100px]" />
@@ -207,7 +230,6 @@ export default function BudgetArchitect() {
 
       {/* --- LEFT PANEL --- */}
       <div className="w-full md:w-5/12 p-8 flex flex-col relative border-r border-slate-800/50 z-10 backdrop-blur-sm bg-slate-900/50">
-
         <div className="mb-6">
           <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-1">Budget Architect</h1>
           <p className="text-slate-400 text-sm font-medium">Build your financial future, one card at a time.</p>
@@ -219,15 +241,15 @@ export default function BudgetArchitect() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={`mb-8 p-5 rounded-2xl text-sm leading-relaxed border backdrop-blur-md shadow-lg transition-colors duration-300 ${feedback.type === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-200 shadow-red-500/10' :
-                feedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200 shadow-emerald-500/10' :
-                  'bg-slate-800/50 border-slate-700 text-slate-300 shadow-black/20'
-              }`}
+            className={`mb-8 p-5 rounded-2xl text-sm leading-relaxed border backdrop-blur-md shadow-lg transition-colors duration-300 ${
+              feedback.type === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-200' :
+              feedback.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' :
+              'bg-slate-800/50 border-slate-700 text-slate-300'
+            }`}
           >
             <div className="flex gap-3 items-start">
               <div className={`mt-0.5 p-1.5 rounded-full ${feedback.type === 'error' ? 'bg-red-500/20 text-red-400' :
-                  feedback.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' :
-                    'bg-slate-700 text-slate-400'
+                  feedback.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'
                 }`}>
                 {feedback.type === 'success' ? <CheckCircle2 size={16} /> : feedback.type === 'error' ? <XCircle size={16} /> : <Info size={16} />}
               </div>
@@ -237,11 +259,10 @@ export default function BudgetArchitect() {
         </AnimatePresence>
 
         <div className="flex-1 flex flex-col justify-center items-center relative perspective-1000 min-h-[400px]">
-          {!isComplete ? (
+          {!isComplete && currentCard && (
             <div className="relative w-full max-w-sm flex flex-col items-center">
-
-              <div className="absolute top-4 scale-[0.9] opacity-40 w-full h-[420px] bg-slate-800 rounded-3xl border border-slate-700 shadow-xl z-0 transform rotate-6 transition-transform duration-500" />
-              <div className="absolute top-2 scale-[0.95] opacity-60 w-full h-[420px] bg-slate-800 rounded-3xl border border-slate-700 shadow-xl z-0 transform -rotate-3 transition-transform duration-500" />
+              <div className="absolute top-4 scale-[0.9] opacity-40 w-full h-[420px] bg-slate-800 rounded-3xl border border-slate-700 shadow-xl z-0 transform rotate-6 transition-transform" />
+              <div className="absolute top-2 scale-[0.95] opacity-60 w-full h-[420px] bg-slate-800 rounded-3xl border border-slate-700 shadow-xl z-0 transform -rotate-3 transition-transform" />
 
               <motion.div
                 key={currentCard.id}
@@ -272,55 +293,26 @@ export default function BudgetArchitect() {
 
                 <div className="w-full grid grid-cols-1 gap-3 mt-auto">
                   <p className="text-center text-xs text-slate-400 font-bold uppercase tracking-wide mb-2">Assign Category</p>
-                  <button
-                    onClick={() => handleSort('needs')}
-                    className="needs-btn group relative w-full py-3.5 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white font-bold rounded-xl flex items-center justify-center gap-3 transition-all duration-300 border border-blue-100 hover:border-blue-500 shadow-sm hover:shadow-blue-500/30 overflow-hidden"
-                  >
-                    <span className="relative z-10 flex items-center gap-2"><Home size={18} /> Needs</span>
+                  <button onClick={() => handleSort('needs')} className="needs-btn group relative w-full py-3.5 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white font-bold rounded-xl flex items-center justify-center gap-3 transition-all border border-blue-100 hover:border-blue-500">
+                    <Home size={18} /> Needs
                   </button>
-
                   <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => handleSort('wants')}
-                      className="wants-btn group w-full py-3.5 bg-purple-50 hover:bg-purple-600 text-purple-600 hover:text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 border border-purple-100 hover:border-purple-500 shadow-sm hover:shadow-purple-500/30"
-                    >
+                    <button onClick={() => handleSort('wants')} className="wants-btn w-full py-3.5 bg-purple-50 hover:bg-purple-600 text-purple-600 hover:text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all border border-purple-100">
                       <Gamepad2 size={18} /> Wants
                     </button>
-                    <button
-                      onClick={() => handleSort('savings')}
-                      className="savings-btn group w-full py-3.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all duration-300 border border-emerald-100 hover:border-emerald-500 shadow-sm hover:shadow-emerald-500/30"
-                    >
+                    <button onClick={() => handleSort('savings')} className="savings-btn w-full py-3.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all border border-emerald-100">
                       <PiggyBank size={18} /> Savings
                     </button>
                   </div>
                 </div>
               </motion.div>
             </div>
-          ) : (
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="flex flex-col justify-center items-center text-center p-8 bg-slate-800/50 rounded-3xl border border-slate-700/50 backdrop-blur-md"
-            >
-              <div className="w-24 h-24 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-                <CheckCircle2 size={48} strokeWidth={3} />
-              </div>
-              <h3 className="text-3xl font-black text-white mb-2">Budget Built!</h3>
-              <p className="text-slate-400 mb-8 max-w-xs mx-auto text-sm font-medium">You've successfully categorized all expenses.</p>
-              <button
-                onClick={resetGame}
-                className="px-8 py-4 bg-slate-100 text-slate-900 hover:bg-white hover:scale-105 rounded-xl font-bold flex items-center gap-3 transition-all shadow-xl shadow-slate-900/20"
-              >
-                <RotateCcw size={18} /> Build Another Budget
-              </button>
-            </motion.div>
           )}
         </div>
       </div>
 
       {/* --- RIGHT PANEL --- */}
       <div className="w-full md:w-7/12 p-8 flex flex-col relative z-10">
-
         <div className="mb-10 flex justify-between items-end bg-slate-800/40 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-md">
           <div>
             <h2 className="text-xl font-bold text-white mb-1">Financial Blueprint</h2>
@@ -338,79 +330,24 @@ export default function BudgetArchitect() {
         </div>
 
         <div className="flex-1 grid grid-cols-3 gap-4 md:gap-8 h-full items-end pb-8 px-4">
-          <Tower
-            className="tower-needs"
-            label="Needs"
-            subLabel="50%"
-            color="bg-blue-500"
-            gradient="from-blue-500 to-indigo-600"
-            currentAmount={towers.needs}
-            targetAmount={TARGETS.needs}
-            icon={<Home size={20} />}
-          />
-          <Tower
-            label="Wants"
-            subLabel="30%"
-            color="bg-purple-500"
-            gradient="from-purple-500 to-pink-600"
-            currentAmount={towers.wants}
-            targetAmount={TARGETS.wants}
-            icon={<Gamepad2 size={20} />}
-          />
-          <Tower
-            label="Savings"
-            subLabel="20%"
-            color="bg-emerald-500"
-            gradient="from-emerald-500 to-teal-600"
-            currentAmount={towers.savings}
-            targetAmount={TARGETS.savings}
-            icon={<PiggyBank size={20} />}
-          />
+          <Tower className="tower-needs" label="Needs" subLabel="50%" color="bg-blue-500" gradient="from-blue-500 to-indigo-600" currentAmount={towers.needs} targetAmount={TARGETS.needs} icon={<Home size={20} />} />
+          <Tower label="Wants" subLabel="30%" color="bg-purple-500" gradient="from-purple-500 to-pink-600" currentAmount={towers.wants} targetAmount={TARGETS.wants} icon={<Gamepad2 size={20} />} />
+          <Tower label="Savings" subLabel="20%" color="bg-emerald-500" gradient="from-emerald-500 to-teal-600" currentAmount={towers.savings} targetAmount={TARGETS.savings} icon={<PiggyBank size={20} />} />
         </div>
 
         <div className="mt-4 pt-6 border-t border-slate-800/50">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest">Transaction Log</h4>
-            <span className="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-500">{history.length} items sorted</span>
-          </div>
-
-          <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide mask-fade-right">
+          <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">Transaction Log</h4>
+          <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
             <AnimatePresence>
               {history.map((item, idx) => (
-                <motion.div
-                  key={item.id + idx}
-                  initial={{ opacity: 0, x: -20, scale: 0.9 }}
-                  animate={{ opacity: 1, x: 0, scale: 1 }}
-                  className="flex-shrink-0 px-4 py-3 bg-slate-800/60 rounded-xl border border-slate-700/50 text-xs flex flex-col gap-1 min-w-[120px] shadow-sm"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`w-2 h-2 rounded-full shadow-[0_0_8px] ${item.category === 'needs' ? 'bg-blue-500 shadow-blue-500' :
-                        item.category === 'wants' ? 'bg-purple-500 shadow-purple-500' : 'bg-emerald-500 shadow-emerald-500'
-                      }`} />
-                    <span className="text-[10px] font-bold uppercase text-slate-500">{item.category}</span>
-                  </div>
+                <motion.div key={item.id + idx} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex-shrink-0 px-4 py-3 bg-slate-800/60 rounded-xl border border-slate-700/50 text-xs flex flex-col min-w-[120px]">
+                  <span className={`w-2 h-2 rounded-full mb-1 ${item.category === 'needs' ? 'bg-blue-500' : item.category === 'wants' ? 'bg-purple-500' : 'bg-emerald-500'}`} />
                   <span className="font-bold text-slate-200 truncate">{item.name}</span>
                   <span className="text-slate-400 font-mono">-${item.cost}</span>
                 </motion.div>
               ))}
             </AnimatePresence>
-            {history.length === 0 && (
-              <div className="w-full text-center py-4 text-slate-600 text-sm font-medium border border-dashed border-slate-800 rounded-xl">
-                No expenses sorted yet. Start building!
-              </div>
-            )}
           </div>
-        </div>
-
-        {/* Description Box */}
-        <div className="mt-4 p-4 bg-slate-800/60 rounded-xl border border-slate-700/50 text-sm text-slate-300 leading-relaxed backdrop-blur-md shadow-sm">
-          <div className="flex items-center gap-2 mb-2 text-slate-100 font-bold">
-            <Info size={16} className="text-blue-400" />
-            <span>About this Exercise</span>
-          </div>
-          <p>
-            This simulation is designed to help you understand the 50/30/20 budgeting rule. You'll practice categorizing real-world expenses into Needs (50%), Wants (30%), and Savings (20%) to build a balanced financial plan.
-          </p>
         </div>
       </div>
     </div>
@@ -420,44 +357,32 @@ export default function BudgetArchitect() {
 const Tower = ({ label, subLabel, color, gradient, currentAmount, targetAmount, icon, className }: any) => {
   const fillPercentage = Math.min((currentAmount / targetAmount) * 100, 100);
   const isOverBudget = currentAmount > targetAmount;
-  const isComplete = currentAmount >= targetAmount;
 
   return (
     <div className={`flex flex-col items-center h-full justify-end group w-full ${className}`}>
-
-      <div className="mb-4 text-center transition-transform duration-300 group-hover:-translate-y-1">
-        <div className={`text-lg font-mono font-bold transition-colors ${isOverBudget ? 'text-red-400 drop-shadow-[0_0_10px_rgba(248,113,113,0.5)]' : 'text-white'}`}>
+      <div className="mb-4 text-center">
+        <div className={`text-lg font-mono font-bold ${isOverBudget ? 'text-red-400' : 'text-white'}`}>
           ${currentAmount.toLocaleString()}
         </div>
-        <div className="h-1 w-8 bg-slate-700 rounded-full mx-auto mt-2 mb-1" />
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Target: ${targetAmount.toLocaleString()}</p>
+        <p className="text-[10px] font-bold text-slate-500 uppercase">Target: ${targetAmount.toLocaleString()}</p>
       </div>
 
-      <div className="w-full max-w-[100px] h-[350px] bg-slate-800/50 rounded-[1.5rem] relative overflow-hidden border border-slate-700/50 backdrop-blur-sm shadow-inner group-hover:border-slate-600 transition-colors">
-
-        <div className="absolute top-0 left-0 right-0 border-b-2 border-dashed border-white/10 z-20 h-full flex items-start justify-center pt-3 pointer-events-none">
-          <span className="text-[10px] font-black text-white/30 tracking-widest">{subLabel}</span>
+      <div className="w-full max-w-[100px] h-[350px] bg-slate-800/50 rounded-[1.5rem] relative overflow-hidden border border-slate-700/50 backdrop-blur-sm">
+        <div className="absolute top-0 left-0 right-0 border-b-2 border-dashed border-white/10 z-20 h-full flex pt-3 justify-center">
+          <span className="text-[10px] font-black text-white/30">{subLabel}</span>
         </div>
-
         <div className="absolute bottom-0 left-0 right-0 w-full h-full z-10 flex items-end">
           <motion.div
             initial={{ height: "0%" }}
             animate={{ height: `${fillPercentage}%` }}
             transition={{ type: "spring", stiffness: 50, damping: 20 }}
-            className={`w-full relative transition-colors duration-500 ${isOverBudget ? 'bg-red-500' : `bg-gradient-to-t ${gradient}`}`}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/50 shadow-[0_0_10px_white]" />
-          </motion.div>
-        </div>
-
-        <div className="absolute inset-0 w-full h-full opacity-10 pointer-events-none"
-          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+            className={`w-full relative ${isOverBudget ? 'bg-red-500' : `bg-gradient-to-t ${gradient}`}`}
+          />
         </div>
       </div>
 
       <div className="mt-5 flex flex-col items-center gap-2">
-        <div className={`p-3 rounded-2xl ${color} bg-opacity-20 text-white shadow-lg border border-white/5 group-hover:scale-110 transition-transform duration-300`}>
+        <div className={`p-3 rounded-2xl ${color} bg-opacity-20 text-white`}>
           {icon}
         </div>
         <span className="text-sm font-bold text-slate-300 tracking-wide">{label}</span>

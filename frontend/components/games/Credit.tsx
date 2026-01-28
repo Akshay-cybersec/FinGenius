@@ -1,318 +1,173 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Joyride, { Step } from 'react-joyride';
 import { 
-  ArrowUp, 
-  ArrowDown, 
-  ArrowLeft, 
-  ArrowRight, 
   CreditCard, 
-  Coins, 
+  TrendingUp, 
+  CheckCircle2, 
+  RotateCcw, 
+  ArrowRight, 
+  BookOpen, 
   ShieldCheck, 
-  Ban, 
-  RefreshCcw,
-  Trophy,TrendingUp 
-} from "lucide-react";
-import confetti from "canvas-confetti";
+  Zap 
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
 
-// --- Configuration ---
-const GRID_SIZE = 5; // 5x5 Grid
-const START_SCORE = 650;
-const GOAL_SCORE = 800;
-const START_CASH = 1500;
-
-// --- Level Design (0: Empty, 1: Wall, 2: Start, 3: Goal, 4: Debt Trap, 5: Credit Boost) ---
-const LEVEL_MAP = [
-  [2, 0, 4, 0, 5],
-  [1, 0, 1, 1, 0],
-  [0, 0, 4, 0, 0],
-  [0, 1, 1, 1, 4],
-  [5, 0, 0, 0, 3]
+// --- Static Educational Data ---
+const CREDIT_INFO = [
+  {
+    title: "What is a Credit Score?",
+    content: "A 3-digit number (300-850) that acts as your 'financial report card'. It tells lenders how likely you are to pay back money.",
+    icon: <ShieldCheck className="text-blue-400" size={24} />
+  },
+  {
+    title: "The Golden Rule: 30%",
+    content: "Keep your 'Credit Utilization' below 30%. If your limit is $1,000, don't spend more than $300 to keep your score high.",
+    icon: <Zap className="text-yellow-400" size={24} />
+  },
+  {
+    title: "Benefits of 750+",
+    content: "Lower interest rates on loans, higher credit limits, and faster approval for premium credit cards.",
+    icon: <TrendingUp className="text-emerald-400" size={24} />
+  }
 ];
 
-export default function CreditMazeRunner() {
-  // --- State ---
-  const [playerPos, setPlayerPos] = useState({ x: 0, y: 0 });
-  const [score, setScore] = useState(START_SCORE);
-  const [cash, setCash] = useState(START_CASH);
-  const [moves, setMoves] = useState(0);
-  const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
-  const [feedback, setFeedback] = useState("Navigate the maze to reach 800 Credit Score!");
-  
-  // Animation States
-  const [floatingText, setFloatingText] = useState<{id: number, text: string, type: 'good'|'bad', x: number, y: number}[]>([]);
-  
-  // Refs for debouncing movement
-  const isMoving = useRef(false);
+const SCENARIOS = [
+  {
+    id: 1,
+    question: "Your $1,000 credit card bill is due. You have $1,200 in the bank. What do you do?",
+    options: [
+      { text: "Pay the Minimum ($50)", impact: -15, explanation: "Paying only the minimum increases interest debt and hurts your score." },
+      { text: "Pay in Full ($1,000)", impact: 45, explanation: "Perfect! Payment History is 35% of your score." }
+    ]
+  },
+  {
+    id: 2,
+    question: "You want a new phone. Your credit limit is $2,000. The phone costs $1,800.",
+    options: [
+      { text: "Max out the card", impact: -35, explanation: "High utilization signals financial danger to banks." },
+      { text: "Save and pay cash", impact: 25, explanation: "Keeping usage under 30% is the secret to a 750+ score." }
+    ]
+  },
+  {
+    id: 3,
+    question: "A store offers you a 10% discount if you open a new store credit card today.",
+    options: [
+      { text: "Open the account", impact: -10, explanation: "Frequent hard inquiries can temporarily dip your score." },
+      { text: "Decline the offer", impact: 10, explanation: "Protecting your credit age and avoiding inquiries is wise." }
+    ]
+  }
+];
 
-  // --- Helpers ---
-  const addFloatingText = (text: string, type: 'good' | 'bad') => {
-    const id = Date.now();
-    // Random offset for visual variety
-    const x = Math.random() * 20 - 10; 
-    const y = Math.random() * 20 - 10;
-    
-    setFloatingText(prev => [...prev, { id, text, type, x, y }]);
-    setTimeout(() => {
-      setFloatingText(prev => prev.filter(ft => ft.id !== id));
-    }, 1000);
+const CreditGame = () => {
+  const [score, setScore] = useState(300);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [logs, setLogs] = useState<string[]>(["Welcome! Aim for 850."]);
+
+  const steps: Step[] = [
+    { target: '.score-meter', content: 'Your financial reputation starts here!', disableBeacon: true, placement: 'bottom' },
+    { target: '.game-card', content: 'Read and choose wisely.', placement: 'right' },
+    { target: '.info-log-btn', content: 'Your real-time history appears here.', placement: 'left' },
+    { target: '.wisdom-row', content: 'Core financial rules stay here for reference.', placement: 'top' },
+  ];
+
+  const handleChoice = (impact: number, explanation: string) => {
+    const newScore = Math.min(850, Math.max(300, score + impact));
+    setScore(newScore);
+    setLogs(prev => [`Score ${impact > 0 ? '+' : ''}${impact}: ${explanation}`, ...prev]);
+    if (impact > 0) confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    if (currentStep < SCENARIOS.length - 1) setCurrentStep(prev => prev + 1);
+    else setIsGameOver(true);
   };
 
-  const checkTile = (x: number, y: number) => {
-    const tileType = LEVEL_MAP[y][x];
-    
-    // 3: Goal
-    if (tileType === 3) {
-      if (score >= 720) {
-        setGameStatus('won');
-        confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
-        setFeedback("🎉 You reached the Prime Rate Castle!");
-      } else {
-        setFeedback("🔒 Locked! You need 720+ Score to enter.");
-        // Bounce back logic could go here, but for now we just warn
-      }
-      return;
-    }
-
-    // 4: Debt Trap (High Interest)
-    if (tileType === 4) {
-      // Logic: You hit a trap. Pay cash to fix, or take credit hit.
-      // Auto-choice for simplicity: Pay if you have cash.
-      if (cash >= 300) {
-        setCash(prev => prev - 300);
-        addFloatingText("-$300", 'bad');
-        setFeedback("⚠️ Debt Trap! You paid $300 to escape interest.");
-      } else {
-        setScore(prev => prev - 50);
-        addFloatingText("-50 Score", 'bad');
-        setFeedback("📉 Debt Trap! You couldn't pay. Late fee hit your score.");
-      }
-    }
-
-    // 5: Credit Boost (Utilization Hack)
-    if (tileType === 5) {
-      setScore(prev => prev + 30);
-      addFloatingText("+30 Score", 'good');
-      setFeedback("📈 Smart Move! You lowered utilization. Score boosted.");
-    }
+  const restartGame = () => {
+    setScore(300); setCurrentStep(0); setIsGameOver(false);
+    setLogs(["Game Restarted!"]);
   };
-
-  const movePlayer = (dx: number, dy: number) => {
-    if (gameStatus !== 'playing' || isMoving.current) return;
-    
-    const newX = playerPos.x + dx;
-    const newY = playerPos.y + dy;
-
-    // Bounds Check
-    if (newX < 0 || newX >= GRID_SIZE || newY < 0 || newY >= GRID_SIZE) return;
-
-    // Wall Check
-    if (LEVEL_MAP[newY][newX] === 1) {
-      setFeedback("🚫 Blocked! That's a maxed-out credit line.");
-      // Shake animation trigger could go here
-      return;
-    }
-
-    // Move is valid
-    isMoving.current = true;
-    setPlayerPos({ x: newX, y: newY });
-    setMoves(prev => prev + 1);
-    
-    // Cost of Living (Movement costs cash)
-    setCash(prev => prev - 50);
-    
-    // Check Tile Event
-    checkTile(newX, newY);
-
-    // Score drift (Time decay simulation)
-    // Every 5 moves, score drops slightly due to "inquiries" or time if inactive
-    if ((moves + 1) % 5 === 0) {
-       setScore(prev => prev - 5);
-       addFloatingText("-5 Decay", 'bad');
-    }
-
-    // Reset move lock
-    setTimeout(() => { isMoving.current = false; }, 200);
-
-    // Loss Conditions
-    if (cash <= 0) {
-      setGameStatus('lost');
-      setFeedback("💸 Bankrupt! You ran out of cash.");
-    }
-  };
-
-  const resetGame = () => {
-    setPlayerPos({ x: 0, y: 0 }); // Assuming start is always 0,0 based on map
-    setScore(START_SCORE);
-    setCash(START_CASH);
-    setMoves(0);
-    setGameStatus('playing');
-    setFeedback("Navigate the maze to reach 800 Credit Score!");
-  };
-
-  // --- Keyboard Support ---
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowUp") movePlayer(0, -1);
-      if (e.key === "ArrowDown") movePlayer(0, 1);
-      if (e.key === "ArrowLeft") movePlayer(-1, 0);
-      if (e.key === "ArrowRight") movePlayer(1, 0);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [playerPos, gameStatus]); // Dependencies for closure freshness
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-slate-900 text-slate-100 rounded-3xl shadow-2xl border border-slate-700 p-8 flex flex-col md:flex-row gap-8 min-h-[600px] font-sans">
-      
-      {/* --- LEFT: Stats & Info --- */}
-      <div className="w-full md:w-1/3 flex flex-col gap-6">
-        <div>
-          <h2 className="text-2xl font-black text-white mb-1 flex items-center gap-2">
-            <CreditCard className="text-emerald-400" /> Maze Runner
-          </h2>
-          <p className="text-slate-400 text-sm">Navigate financial obstacles. Reach the goal with 720+ Score.</p>
-        </div>
+    <div className="min-h-screen bg-slate-950 text-white p-4 md:p-8 font-sans">
+      <Joyride steps={steps} continuous showProgress showSkipButton styles={{ options: { primaryColor: '#10b981', backgroundColor: '#1e293b', textColor: '#fff' }}} />
 
-        <div className="space-y-4">
-          {/* Score Card */}
-          <div className="p-4 bg-slate-800 rounded-2xl border border-slate-700 relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold uppercase text-slate-500 tracking-wider">Credit Score</span>
-              <ShieldCheck size={18} className={score >= 720 ? "text-emerald-400" : "text-yellow-400"} />
-            </div>
-            <div className="text-4xl font-black text-white">{score}</div>
-            
-            {/* Floating Text Animation Container */}
-            {floatingText.filter(t => t.text.includes("Score")).map(ft => (
-              <div 
-                key={ft.id}
-                className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-lg font-bold animate-out fade-out slide-out-to-top-8 duration-1000 ${ft.type === 'good' ? 'text-emerald-400' : 'text-red-400'}`}
-              >
-                {ft.text}
-              </div>
-            ))}
+      {/* Header */}
+      <div className="max-w-7xl mx-auto text-center mb-12">
+        <h1 className="text-4xl md:text-6xl font-black bg-gradient-to-r from-blue-400 via-emerald-400 to-cyan-400 bg-clip-text text-transparent mb-6 uppercase tracking-tighter">
+          Credit Climb
+        </h1>
+        <div className="score-meter relative inline-flex flex-col items-center p-6 rounded-3xl border border-slate-800 bg-slate-900/20 backdrop-blur-md">
+          <motion.span key={score} animate={{ scale: [1, 1.1, 1] }} className={`text-6xl font-black ${score > 650 ? 'text-emerald-400' : 'text-red-400'}`}>{score}</motion.span>
+          <div className="w-64 h-2 bg-slate-800 rounded-full mt-4 overflow-hidden">
+            <motion.div className="h-full bg-emerald-500" animate={{ width: `${((score - 300) / 550) * 100}%` }} />
           </div>
-
-          {/* Cash Card */}
-          <div className="p-4 bg-slate-800 rounded-2xl border border-slate-700 relative overflow-hidden">
-             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-bold uppercase text-slate-500 tracking-wider">Cash on Hand</span>
-              <Coins size={18} className="text-yellow-400" />
-            </div>
-            <div className="text-3xl font-mono font-bold text-white">${cash}</div>
-             {floatingText.filter(t => t.text.includes("$")).map(ft => (
-              <div 
-                key={ft.id}
-                className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-lg font-bold animate-out fade-out slide-out-to-top-8 duration-1000 ${ft.type === 'good' ? 'text-emerald-400' : 'text-red-400'}`}
-              >
-                {ft.text}
-              </div>
-            ))}
-          </div>
-
-           {/* Feedback Box */}
-          <div className="p-4 bg-blue-900/20 border border-blue-500/30 rounded-xl min-h-[80px] flex items-center justify-center text-center">
-            <p className="text-sm text-blue-200 animate-in fade-in zoom-in duration-300" key={feedback}>
-              {feedback}
-            </p>
-          </div>
-        </div>
-
-        {/* Legend */}
-        <div className="mt-auto grid grid-cols-2 gap-2 text-xs text-slate-500">
-           <div className="flex items-center gap-2"><div className="w-3 h-3 bg-slate-700 rounded-sm"></div> Empty</div>
-           <div className="flex items-center gap-2"><div className="w-3 h-3 bg-red-900/50 border border-red-500 rounded-sm"></div> Debt Trap</div>
-           <div className="flex items-center gap-2"><div className="w-3 h-3 bg-slate-600 rounded-sm"></div> Wall</div>
-           <div className="flex items-center gap-2"><div className="w-3 h-3 bg-emerald-900/50 border border-emerald-500 rounded-sm"></div> Boost</div>
         </div>
       </div>
 
-      {/* --- RIGHT: The Maze Grid --- */}
-      <div className="w-full md:w-2/3 bg-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center relative border border-slate-700">
-        
-        {gameStatus === 'playing' ? (
-          <>
-            <div 
-              className="grid gap-2 mb-6"
-              style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}
-            >
-              {LEVEL_MAP.map((row, y) => (
-                row.map((cell, x) => {
-                  const isPlayer = playerPos.x === x && playerPos.y === y;
-                  let cellContent = null;
-                  let cellStyle = "bg-slate-700/50 border-slate-600"; // Default
-
-                  if (cell === 1) cellStyle = "bg-slate-600 border-slate-500 shadow-inner"; // Wall
-                  if (cell === 2) cellContent = <div className="text-[10px] text-slate-400 uppercase font-bold">Start</div>;
-                  if (cell === 3) {
-                     cellStyle = "bg-yellow-500/20 border-yellow-500/50";
-                     cellContent = <Trophy size={20} className="text-yellow-400" />;
-                  }
-                  if (cell === 4) {
-                     cellStyle = "bg-red-500/10 border-red-500/30";
-                     cellContent = <Ban size={20} className="text-red-400 opacity-70" />;
-                  }
-                  if (cell === 5) {
-                     cellStyle = "bg-emerald-500/10 border-emerald-500/30";
-                     cellContent = <TrendingUp size={20} className="text-emerald-400 opacity-70" />;
-                  }
-
-                  return (
-                    <div 
-                      key={`${x}-${y}`}
-                      className={`w-14 h-14 md:w-20 md:h-20 rounded-xl border-2 flex items-center justify-center relative transition-all duration-300 ${cellStyle}`}
-                    >
-                      {cellContent}
-                      {/* Player Avatar */}
-                      {isPlayer && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10 animate-in zoom-in duration-300">
-                           <div className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-full shadow-[0_0_20px_rgba(255,255,255,0.3)] flex items-center justify-center">
-                              <span className="text-xl">🏃</span>
-                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              ))}
-            </div>
-
-            {/* Controls (Mobile Friendly) */}
-            <div className="grid grid-cols-3 gap-2 w-full max-w-[200px]">
-               <div></div>
-               <button onClick={() => movePlayer(0, -1)} className="p-4 bg-slate-700 rounded-xl hover:bg-slate-600 active:scale-95 transition-all"><ArrowUp/></button>
-               <div></div>
-               <button onClick={() => movePlayer(-1, 0)} className="p-4 bg-slate-700 rounded-xl hover:bg-slate-600 active:scale-95 transition-all"><ArrowLeft/></button>
-               <button onClick={() => movePlayer(0, 1)} className="p-4 bg-slate-700 rounded-xl hover:bg-slate-600 active:scale-95 transition-all"><ArrowDown/></button>
-               <button onClick={() => movePlayer(1, 0)} className="p-4 bg-slate-700 rounded-xl hover:bg-slate-600 active:scale-95 transition-all"><ArrowRight/></button>
-            </div>
-            <p className="text-xs text-slate-500 mt-4">Use Arrow Keys or Buttons to Move</p>
-          </>
-        ) : (
-          /* Game Over Screen */
-          <div className="text-center animate-in zoom-in duration-500">
-            {gameStatus === 'won' ? (
-              <>
-                 <Trophy className="w-24 h-24 text-yellow-400 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                 <h2 className="text-3xl font-black text-white mb-4">Credit Master!</h2>
-                 <p className="text-slate-300 mb-8">You navigated the maze and kept your score high.</p>
-              </>
-            ) : (
-               <>
-                 <Ban className="w-24 h-24 text-red-400 mx-auto mb-6 opacity-80" />
-                 <h2 className="text-3xl font-black text-white mb-4">Financial Ruin</h2>
-                 <p className="text-slate-300 mb-8">You ran out of cash or your score dropped too low.</p>
-              </>
-            )}
-            <button 
-                onClick={resetGame}
-                className="px-8 py-3 bg-white text-slate-900 font-bold rounded-full hover:bg-slate-200 transition-all flex items-center gap-2 mx-auto"
-            >
-                <RefreshCcw size={18} /> Play Again
-            </button>
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Top Row: Game and Logs */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <AnimatePresence mode="wait">
+              {!isGameOver ? (
+                <motion.div key="game" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="game-card bg-slate-900 border border-slate-800 p-8 rounded-[2rem] shadow-2xl h-full flex flex-col justify-center min-h-[400px]">
+                  <span className="text-xs font-bold text-blue-400 mb-4 uppercase tracking-widest">Scenario {currentStep + 1}</span>
+                  <h2 className="text-2xl md:text-3xl font-bold mb-8 leading-tight">{SCENARIOS[currentStep].question}</h2>
+                  <div className="space-y-4">
+                    {SCENARIOS[currentStep].options.map((opt, idx) => (
+                      <button key={idx} onClick={() => handleChoice(opt.impact, opt.explanation)} className="w-full group p-5 text-left rounded-2xl border border-slate-800 hover:border-emerald-500 bg-slate-800/30 hover:bg-emerald-500/5 transition-all flex justify-between items-center">
+                        <span className="text-lg font-medium group-hover:text-emerald-400">{opt.text}</span>
+                        <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform text-slate-600" />
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-emerald-500/10 border border-emerald-500/30 p-12 rounded-[2rem] text-center h-full flex flex-col justify-center">
+                  <h2 className="text-4xl font-black mb-4 text-emerald-400">Mission Accomplished</h2>
+                  <p className="text-slate-400 text-xl mb-8 font-medium">Final Rating: <span className="text-white">{score}</span></p>
+                  <div className="flex gap-4 justify-center">
+                    <button onClick={restartGame} className="p-4 px-8 bg-slate-800 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-700 transition-colors"><RotateCcw size={18}/> Restart</button>
+                    <button className="p-4 px-8 bg-emerald-500 text-slate-950 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-400 transition-colors">Next Challenge <ArrowRight size={18}/></button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        )}
+
+          {/* Insights Log Box (Now Beside Scenario) */}
+          <div className="info-log-btn bg-slate-900/50 border border-slate-800 rounded-[2rem] p-6 shadow-xl flex flex-col h-[400px] lg:h-full">
+            <div className="flex items-center gap-2 mb-4 text-emerald-400">
+              <CheckCircle2 size={18} />
+              <h3 className="font-bold text-sm uppercase tracking-widest">Insights Log</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar text-[11px]">
+              <AnimatePresence initial={false}>
+                {logs.map((log, i) => (
+                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} key={i} className={`p-3 rounded-xl border ${log.includes('-') ? 'bg-red-500/5 border-red-500/20 text-red-200' : 'bg-emerald-500/5 border-emerald-500/20 text-emerald-100'}`}>
+                    {log}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Row: Credit Wisdom (Aligned Horizontally) */}
+        <div className="wisdom-row grid grid-cols-1 md:grid-cols-3 gap-6">
+          {CREDIT_INFO.map((info, i) => (
+            <div key={i} className="bg-slate-900 border border-slate-800 p-6 rounded-[1.5rem] hover:border-blue-500/50 transition-colors shadow-lg">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-slate-800 rounded-lg">{info.icon}</div>
+                <h3 className="font-bold text-sm text-white leading-tight">{info.title}</h3>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed italic">{info.content}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default CreditGame;
