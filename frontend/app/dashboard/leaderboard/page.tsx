@@ -36,7 +36,7 @@ const ACHIEVEMENTS: Achievement[] = [
     description: 'Complete your first learning module.',
     rarity: 'Common',
     xpReward: 100,
-    icon: <CheckCircle2 size={32} />,
+    icon: <CheckCircle2 size={36} />,
     progress: 100,
     unlocked: true,
     unlockedDate: 'Jan 20, 2026'
@@ -47,7 +47,7 @@ const ACHIEVEMENTS: Achievement[] = [
     description: 'Maintain a 7-day learning streak.',
     rarity: 'Rare',
     xpReward: 500,
-    icon: <Flame size={32} />,
+    icon: <Flame size={36} />,
     progress: 71, 
     unlocked: false
   },
@@ -57,7 +57,7 @@ const ACHIEVEMENTS: Achievement[] = [
     description: 'Create a balanced budget with <5% error margin.',
     rarity: 'Epic',
     xpReward: 1000,
-    icon: <PiggyBank size={32} />,
+    icon: <PiggyBank size={36} />,
     progress: 100,
     unlocked: true,
     unlockedDate: 'Jan 22, 2026'
@@ -68,7 +68,7 @@ const ACHIEVEMENTS: Achievement[] = [
     description: 'Make a 20% profit in the Stock Simulator.',
     rarity: 'Legendary',
     xpReward: 2500,
-    icon: <TrendingUp size={32} />,
+    icon: <TrendingUp size={36} />,
     progress: 45,
     unlocked: false
   },
@@ -78,7 +78,7 @@ const ACHIEVEMENTS: Achievement[] = [
     description: 'Score 100% on 5 consecutive quizzes.',
     rarity: 'Rare',
     xpReward: 600,
-    icon: <Brain size={32} />,
+    icon: <Brain size={36} />,
     progress: 60, 
     unlocked: false
   },
@@ -88,7 +88,7 @@ const ACHIEVEMENTS: Achievement[] = [
     description: 'Pay off all loans in the Debt Simulator.',
     rarity: 'Epic',
     xpReward: 1200,
-    icon: <Shield size={32} />,
+    icon: <Shield size={36} />,
     progress: 0,
     unlocked: false
   },
@@ -98,7 +98,7 @@ const ACHIEVEMENTS: Achievement[] = [
     description: 'Reach the Top 3 on the global leaderboard.',
     rarity: 'Mythic',
     xpReward: 5000,
-    icon: <Crown size={32} />,
+    icon: <Crown size={36} />,
     progress: 10,
     unlocked: false
   },
@@ -108,7 +108,7 @@ const ACHIEVEMENTS: Achievement[] = [
     description: 'Join the platform during the beta phase.',
     rarity: 'Common',
     xpReward: 50,
-    icon: <Medal size={32} />,
+    icon: <Medal size={36} />,
     progress: 100,
     unlocked: true,
     unlockedDate: 'Jan 15, 2026'
@@ -119,43 +119,48 @@ const getRarityStyles = (rarity: Rarity) => {
   switch (rarity) {
     case 'Common': 
       return { 
-        bg: 'from-slate-200 to-slate-400', 
-        border: 'border-slate-300', 
+        borderGradient: 'from-slate-400 to-slate-600',
+        bg: 'from-slate-700 via-slate-600 to-slate-800',
         shadow: 'shadow-slate-500/20', 
-        text: 'text-slate-600',
-        glow: 'bg-slate-400'
+        text: 'text-slate-400',
+        glow: 'bg-slate-500',
+        iconColor: 'text-slate-200'
       };
     case 'Rare': 
       return { 
-        bg: 'from-blue-300 to-indigo-500', 
-        border: 'border-blue-300', 
-        shadow: 'shadow-blue-500/30', 
-        text: 'text-blue-600',
-        glow: 'bg-blue-400'
+        borderGradient: 'from-cyan-400 to-blue-600',
+        bg: 'from-blue-600 via-cyan-700 to-blue-900',
+        shadow: 'shadow-cyan-500/40', 
+        text: 'text-cyan-400',
+        glow: 'bg-cyan-500',
+        iconColor: 'text-cyan-100'
       };
     case 'Epic': 
       return { 
-        bg: 'from-purple-300 to-fuchsia-600', 
-        border: 'border-purple-300', 
-        shadow: 'shadow-purple-500/30', 
-        text: 'text-purple-600',
-        glow: 'bg-purple-400'
+        borderGradient: 'from-fuchsia-400 to-purple-700',
+        bg: 'from-purple-700 via-fuchsia-800 to-purple-950',
+        shadow: 'shadow-purple-500/40', 
+        text: 'text-purple-400',
+        glow: 'bg-purple-500',
+        iconColor: 'text-purple-100'
       };
     case 'Legendary': 
       return { 
-        bg: 'from-amber-200 to-orange-500', 
-        border: 'border-amber-300', 
-        shadow: 'shadow-amber-500/40', 
-        text: 'text-amber-600',
-        glow: 'bg-amber-400'
+        borderGradient: 'from-yellow-400 via-orange-500 to-red-600',
+        bg: 'from-orange-600 via-red-700 to-rose-950',
+        shadow: 'shadow-orange-500/50', 
+        text: 'text-orange-400',
+        glow: 'bg-orange-500',
+        iconColor: 'text-yellow-100'
       };
     case 'Mythic': 
       return { 
-        bg: 'from-cyan-300 via-blue-500 to-purple-600', 
-        border: 'border-cyan-300', 
-        shadow: 'shadow-cyan-500/50', 
-        text: 'text-cyan-600',
-        glow: 'bg-cyan-400'
+        borderGradient: 'from-pink-400 via-purple-500 to-indigo-600',
+        bg: 'from-indigo-600 via-purple-700 to-pink-900',
+        shadow: 'shadow-pink-500/50', 
+        text: 'text-pink-400',
+        glow: 'bg-pink-500',
+        iconColor: 'text-pink-50'
       };
   }
 };
@@ -166,134 +171,182 @@ export default function AchievementsPage() {
   const completion = Math.round((unlocked / total) * 100);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F19] text-slate-900 dark:text-white font-sans transition-colors duration-500">
+    <div className="w-full min-h-full bg-slate-950 text-slate-50 font-sans selection:bg-cyan-500/30 relative">
       
-      <nav className="sticky top-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-[#0B0F19]/70 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center">
-            <span className="font-black text-lg tracking-tight">TROPHY ROOM</span>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto p-6 md:p-12 pb-32">
-        
-        <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-8">
-          <div>
-            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4">
-              Your <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500 dark:from-indigo-400 dark:to-cyan-400">
-                Achievements
-              </span>
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 max-w-lg text-lg">
-              Collect badges by mastering skills, maintaining streaks, and topping the leaderboards.
-            </p>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-xl w-full md:w-auto min-w-[280px]">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Unlocked</span>
-              <span className="text-2xl font-black font-mono">{unlocked}/{total}</span>
+      {/* FIXED BACKGROUND LAYER - Solves double scrollbar issue */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-cyan-900/20 blur-[120px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-purple-900/20 blur-[120px] rounded-full mix-blend-screen" />
+      </div>
+      
+      <div className="relative z-10">
+        <nav className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/60">
+            <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                <span className="font-black text-xl tracking-tight text-white flex items-center gap-2">
+                    <Target className="text-cyan-400 animate-pulse" /> TROPHY ROOM
+                </span>
             </div>
-            <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-indigo-500 to-cyan-500 transition-all duration-1000" 
-                style={{ width: `${completion}%` }}
-              />
-            </div>
-          </div>
-        </div>
+        </nav>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {ACHIEVEMENTS.map((item, idx) => {
-            const styles = getRarityStyles(item.rarity);
+        <div className="max-w-7xl mx-auto p-6 md:p-12 pb-32">
             
-            return (
-              <div 
-                key={item.id}
-                className={`
-                  group relative bg-white dark:bg-[#131722] rounded-[2.5rem] border border-slate-200 dark:border-slate-800 
-                  overflow-hidden flex flex-col transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl
-                  ${item.unlocked ? 'opacity-100' : 'opacity-60 grayscale-[0.5]'}
-                `}
-                style={{ animationDelay: `${idx * 100}ms` }}
-              >
-                
-                <div className={`h-48 relative overflow-hidden flex items-center justify-center p-8 z-0`}>
-                  
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-slate-100 via-slate-50 to-transparent dark:from-slate-800 dark:via-[#0B0F19] dark:to-transparent opacity-80" />
-                  
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-tr from-transparent via-white/10 to-transparent rotate-45 translate-y-full group-hover:-translate-y-full" />
+            <div className="flex flex-col md:flex-row items-end justify-between mb-20 gap-8">
+            <div>
+                <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4 text-white">
+                Your <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 animate-gradient-x">
+                    Achievements
+                </span>
+                </h1>
+                <p className="text-slate-400 max-w-lg text-lg leading-relaxed">
+                Prove your financial mastery. Collect badges, earn XP, and showcase your progress to the world.
+                </p>
+            </div>
 
-                  <div className={`
-                    relative z-10 w-24 h-24 flex items-center justify-center
-                    bg-gradient-to-br ${styles.bg} 
-                    rounded-2xl rotate-45 border-4 border-white/20 shadow-xl ${styles.shadow}
-                    transition-transform duration-500 group-hover:scale-110 group-hover:rotate-[50deg]
-                  `}>
-                    <div className="-rotate-45 text-white drop-shadow-md">
-                      {item.icon}
+            <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 p-8 rounded-[2rem] shadow-2xl w-full md:w-auto min-w-[340px] relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 opacity-50 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-[60px] rounded-full group-hover:bg-cyan-500/20 transition-colors" />
+                
+                <div className="flex justify-between items-center mb-5 relative z-10">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Unlocked</span>
+                <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-black font-mono text-white">{unlocked}</span>
+                    <span className="text-xl font-bold text-slate-500">/{total}</span>
+                </div>
+                </div>
+                
+                <div className="relative z-10">
+                <div className="flex justify-between text-xs font-bold text-slate-400 mb-2">
+                    <span>Progress</span>
+                    <span>{completion}%</span>
+                </div>
+                <div className="h-4 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-800/80 relative box-border p-[2px]">
+                    <div 
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all duration-1000 relative overflow-hidden" 
+                    style={{ width: `${completion}%` }}
+                    >
+                        <div className="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite] skew-x-12" />
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
+            {ACHIEVEMENTS.map((item, idx) => {
+                const styles = getRarityStyles(item.rarity);
+                
+                return (
+                <div 
+                    key={item.id}
+                    className={`
+                    group relative bg-slate-900/40 backdrop-blur-sm rounded-[2.5rem] border border-slate-800/80
+                    overflow-visible flex flex-col transition-all duration-500 hover:-translate-y-3 hover:shadow-2xl hover:shadow-black/50 hover:border-slate-700/80
+                    ${item.unlocked ? 'opacity-100' : 'opacity-75'}
+                    `}
+                    style={{ animationDelay: `${idx * 100}ms` }}
+                >
+                    
+                    <div className="h-48 relative flex items-center justify-center z-20 -mt-8">
+                    
+                    <div className={`absolute inset-0 bg-gradient-to-tr ${styles.bg} blur-[60px] opacity-0 group-hover:opacity-40 transition-opacity duration-700 rounded-full transform scale-75 group-hover:scale-110`} />
+
+                    <div className={`
+                        relative w-36 h-36 z-10
+                        rotate-12 group-hover:rotate-[20deg] transition-all duration-500 ease-out
+                        group-hover:scale-110
+                    `}>
+                        <div className={`absolute inset-0 rounded-[2rem] bg-gradient-to-br ${styles.borderGradient} shadow-xl ${styles.shadow} p-[4px]`}>
+                        <div className={`
+                            w-full h-full rounded-[calc(2rem-4px)] 
+                            bg-gradient-to-br ${styles.bg}
+                            shadow-[inset_0_5px_20px_rgba(0,0,0,0.6),_inset_0_-2px_5px_rgba(255,255,255,0.1)]
+                            flex items-center justify-center
+                            overflow-hidden relative
+                        `}>
+                            
+                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 animate-[shimmer_3s_infinite_linear] -skew-x-12" style={{ backgroundSize: '200% 100%' }} />
+
+                            <div className={`
+                            -rotate-12 transform transition-transform duration-500 group-hover:scale-105 relative z-20 
+                            ${styles.iconColor} drop-shadow-[0_8px_8px_rgba(0,0,0,0.5)]
+                            ${item.unlocked ? 'filter brightness-110' : 'filter grayscale brightness-75'}
+                            `}>
+                            {item.icon}
+                            </div>
+
+                            {!item.unlocked && (
+                            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[3px] flex items-center justify-center z-30 -rotate-12">
+                                <div className="bg-slate-900/80 p-3 rounded-2xl border border-white/10 shadow-lg">
+                                <Lock className="text-white/60 w-8 h-8" />
+                                </div>
+                            </div>
+                            )}
+                        </div>
+                        </div>
+                    </div>
                     </div>
 
-                    {!item.unlocked && (
-                      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] rounded-xl flex items-center justify-center -rotate-0">
-                        <Lock className="text-white/80 w-8 h-8 -rotate-45" />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                    <div className="p-8 pt-4 flex-1 flex flex-col relative z-10">
+                    
+                    <div className="flex justify-center mb-6 relative">
+                        <span className={`
+                        px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border bg-slate-950/50 backdrop-blur-md
+                        ${styles.text} border-current shadow-lg relative z-10
+                        `}>
+                        {item.rarity}
+                        </span>
+                        <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-[2px] ${styles.glow} blur-[4px] opacity-50 group-hover:opacity-100 transition-opacity`} />
+                    </div>
 
-                <div className="p-6 pt-2 flex-1 flex flex-col relative z-10 bg-white dark:bg-[#131722]">
-                  
-                  <div className="flex justify-center mb-4">
-                    <span className={`
-                      px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border bg-opacity-10
-                      ${styles.text} border-current
-                    `}>
-                      {item.rarity}
-                    </span>
-                  </div>
+                    <div className="text-center mb-8">
+                        <h3 className={`text-xl font-black text-white mb-3 leading-tight transition-all duration-300 group-hover:${styles.text} ${!item.unlocked && 'opacity-60'}`}>
+                        {item.title}
+                        </h3>
+                        <p className={`text-sm text-slate-400 leading-relaxed font-medium ${!item.unlocked && 'opacity-50'}`}>
+                        {item.description}
+                        </p>
+                    </div>
 
-                  <div className="text-center mb-6">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 leading-tight group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
-                      {item.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                      {item.description}
-                    </p>
-                  </div>
-
-                  <div className="mt-auto">
-                    {item.unlocked ? (
-                      <div className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider">
-                        <CheckCircle2 size={14} /> Unlocked
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-[10px] font-bold uppercase text-slate-400">
-                          <span>Progress</span>
-                          <span>{item.progress}%</span>
+                    <div className="mt-auto">
+                        {item.unlocked ? (
+                        <div className="w-full py-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col items-center justify-center gap-1 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)] group-hover:shadow-[0_0_30px_rgba(16,185,129,0.2)] transition-shadow">
+                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                            <CheckCircle2 size={16} /> Unlocked
+                            </div>
+                            <span className="text-[10px] font-medium text-emerald-500/70">{item.unlockedDate}</span>
                         </div>
-                        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${styles.glow}`} 
-                            style={{ width: `${item.progress}%` }}
-                          />
+                        ) : (
+                        <div className="space-y-3 opacity-70 group-hover:opacity-100 transition-opacity">
+                            <div className="flex justify-between text-[10px] font-bold uppercase text-slate-500">
+                            <span>Progress</span>
+                            <span className={styles.text}>{item.progress}%</span>
+                            </div>
+                            <div className="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-800/80 p-[1px]">
+                            <div 
+                                className={`h-full rounded-full ${styles.glow} shadow-[0_0_15px_currentColor] relative overflow-hidden`} 
+                                style={{ width: `${item.progress}%` }}
+                            >
+                                <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]" />
+                            </div>
+                            </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                        )}
+                    </div>
 
-                  <div className="absolute top-0 right-6 -translate-y-1/2 bg-white dark:bg-slate-800 shadow-lg border border-slate-100 dark:border-slate-700 px-3 py-1 rounded-full flex items-center gap-1.5">
-                    <Zap size={12} className="text-yellow-500 fill-yellow-500" />
-                    <span className="text-xs font-bold font-mono">{item.xpReward}</span>
-                  </div>
+                    <div className="absolute top-6 right-6 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-lg z-30 group-hover:-translate-y-3/4 transition-all">
+                        <Zap size={12} className="text-yellow-400 fill-yellow-400" />
+                        <span className="text-xs font-bold font-mono text-white">{item.xpReward} XP</span>
+                    </div>
 
+                    </div>
                 </div>
-              </div>
-            );
-          })}
+                );
+            })}
+            </div>
+
         </div>
-
       </div>
     </div>
   );
