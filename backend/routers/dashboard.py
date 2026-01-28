@@ -8,6 +8,7 @@ router = APIRouter()
 
 @router.get("/dashboard")
 def get_dashboard(clerk_id: str = Depends(get_current_user)):
+    print("hellop")
     update_user_activity(clerk_id)
     
     user = users_col.find_one({"clerk_id": clerk_id}, {"_id": 0})
